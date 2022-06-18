@@ -2,8 +2,6 @@ import KenBurnsCanvas2D from "kenburns/lib/Canvas2D";
 import bezierEasing from "bezier-easing";
 import rectCrop from "rect-crop";
 import renderUi from "./ui"
-import { fabric } from "fabric";
-
 
 //#region Utility methods
 // Utility to load an Image by url, which works data-urls
@@ -28,15 +26,24 @@ const title = t => {
 function simpleArraySum(ar) {
   var sum = 0;
   for (var i = 0; i < ar.length; i++) {
-    sum += ar[i];
+    sum += Number.parseFloat(ar[i]);
   }
   return sum;
 }
 
-function recordingLength() {
-  const value = Number.parseFloat(simpleArraySum(durations)) + Number.parseFloat(simpleArraySum(delays));
-  console.log(value)
-  return value
+var drawRectCrop = (zoom, center, color) => {
+  var centerX = imgDeminsions.width * center[0];
+  var centerY = imgDeminsions.height * center[1];
+  var rect = rectCrop(zoom, center)(canvasDeminsions, imgDeminsions);
+  
+  imgContext.beginPath();
+  imgContext.strokeStyle = color;
+  imgContext.beginPath();
+  imgContext.arc(centerX, centerY, 10, 0, 2 * Math.PI, false);
+  imgContext.fillStyle = color;
+  imgContext.fill();
+  imgContext.lineWidth = 5;
+  imgContext.strokeRect(rect[0], rect[1], rect[2], rect[3])
 }
 
 function displayArray(data) {
@@ -54,7 +61,7 @@ function clearKBData() {
   delays.splice(0, delays.length);
   crops.splice(0, crops.length);
   easings.splice(0, easings.length);
-  cropzones.splice(0, cropzones.length);
+  // cropzones.splice(0, cropzones.length);
   continueLoop = false;
   canvas.remove()
   dumpKBData();
@@ -66,33 +73,14 @@ function clearKBData() {
   imageToggle(null)
 }
 
-function rectangleBounds(center, zoom) {
-  var viewportRatio = 1
-  var dimensionRatio = imgDeminsions.width / imgDeminsions.height;
-
-  var maxRatio = Math.max(viewportRatio, dimensionRatio);
-  var zoomedCanvasSize = [
-    (viewportRatio / maxRatio) * imgDeminsions.width * zoom,
-    (dimensionRatio / maxRatio) * imgDeminsions.height * zoom
-  ];
-  var centerX = imgDeminsions.width * center[0];
-  var centerY = imgDeminsions.height * center[1];
-
-  return [
-    (centerX - zoomedCanvasSize[0] / 2) > 0 ? centerX - zoomedCanvasSize[0] / 2 : 0,
-    (centerY - zoomedCanvasSize[1] / 2) > 0 ? centerY - zoomedCanvasSize[1] / 2 : 0,
-    zoomedCanvasSize[0],
-    zoomedCanvasSize[1]
-  ];
-}
-
 function dumpKBData() {
-  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, cropzones sum ${recordingLength()}`)
+  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, canvasDeminsions sum ${recordingLength()}`)
   displayArray(centerPoints);
   displayArray(zoom);
   displayArray(durations);
   displayArray(delays);
-  displayArray(cropzones);
+  // displayArray(cropzones);
+  console.log(canvasDeminsions)
   console.groupEnd();
   dispalyWaypoints();
 
@@ -104,10 +92,10 @@ function dispalyWaypoints() {
     const div = document.createElement("div")
     div.className = "column"
     const p1 = document.createElement("p");
-    let text = `Waypoint ${i}: Color: ${color[i%color.length]}`
+    let text = `Waypoint ${i}: Color: ${color[i % color.length]}`
     p1.innerText = text
     const style = {
-      color: color[i%color.length],
+      color: color[i % color.length],
     }
     p1.className = "items"
     Object.assign(p1.style, style)
@@ -120,66 +108,84 @@ function dispalyWaypoints() {
     var uiCxInput = renderUi.slider(labels[0], centerPoints[i][0], i, inputChanged);
     var uiCyInput = renderUi.slider(labels[1], centerPoints[i][1], i, inputChanged);
     var uiZInput = renderUi.slider(labels[2], zoom[i], i, inputChanged);
-    // var uiDurInput = renderUi.input(labels[3], durations[i], i, inputChanged);
-    // var uiDelInput = renderUi.input(labels[4], delays[i], i, inputChanged);
-    var uiSDurInput = renderUi.slider(labels[3], durations[i]/10000, i, inputChanged);
-    var uiSDelInput = renderUi.slider(labels[4], delays[i]/10000, i, inputChanged);
-    // uiDurInput.className =uiDelInput.className = "items"
+    var uiSDurInput = renderUi.slider(labels[3], durations[i] / 10000, i, inputChanged);
+    var uiSDelInput = renderUi.slider(labels[4], delays[i] / 10000, i, inputChanged);
     waypoints.appendChild(uiCxInput)
     waypoints.appendChild(uiCyInput)
     waypoints.appendChild(uiZInput)
-    // waypoints.appendChild(uiDurInput)
     waypoints.appendChild(uiSDurInput)
-    // waypoints.appendChild(uiDelInput)
     waypoints.appendChild(uiSDelInput)
     waypoints.appendChild(p2)
     waypoints.appendChild(document.createElement("br"))
   }
   const rec = document.createElement("p");
-  rec.innerText = `Legnth: ${(recordingLength()/1000).toFixed(3)}s`
+  rec.innerText = `Legnth: ${(recordingLength() / 1000).toFixed(3)}s`
   waypoints.appendChild(rec)
+}
 
-
+function imageDimensionsInputs() {
+  const div = document.createElement("div")
+  const uiKBWInput = renderUi.input('Width', canvasDeminsions.width, 'width', inputKBChanged);
+  const uiKBHInput = renderUi.input('Height', canvasDeminsions.height, 'height', inputKBChanged);
+  div.style.padding = '16px'
+  div.appendChild(uiKBWInput)
+  div.appendChild(uiKBHInput)
+  return div
 }
 
 function inputChanged(ev, key) {
   const emitter = document.getElementById(key)
   const mapper = key.split('_')
+  const idx = mapper[1];
   console.groupCollapsed(`received change on ${JSON.stringify(mapper)} to value ${emitter.value}`)
   console.log(ev)
   console.groupEnd()
-  switch(mapper[0]) {
+  switch (mapper[0]) {
     case labels[0]:
-      centerPoints[mapper[1]][0] = emitter.value/100;
+      centerPoints[idx][0] = emitter.value / 100;
       break;
     case labels[1]:
-      centerPoints[mapper[1]][1] = emitter.value/100;
+      centerPoints[idx][1] = emitter.value / 100;
       break;
     case labels[2]:
-      zoom[mapper[1]] = emitter.value/100;
+      zoom[idx] = emitter.value / 100;
       break;
     case labels[3]:
-      durations[mapper[1]] = emitter.value*100;
+      durations[idx] = emitter.value * 100;
       break;
     case labels[4]:
-      delays[mapper[1]] = emitter.value*100;
+      delays[idx] = emitter.value * 100;
       break;
-    }
-    doImageMapping(exampleImageUrl);
-    dispalyWaypoints()
+  }
+  crops[idx] = rectCrop(zoom[idx], centerPoints[idx])
+  doImageMapping(exampleImageUrl);
+  dispalyWaypoints()
+}
+
+function inputKBChanged(ev, key) {
+  const emitter = document.getElementById(key)
+  const mapper = key.split('_')
+  try {
+    canvasDeminsions[mapper[1]] = Number.parseInt(emitter.value)
+    side.innerHTML = ""
+    doImageMapping(exampleImageUrl)
+  }
+  catch (e) {
+    console.error(e)
+  }
 }
 function imageToggle(ev) {
   const div = document.getElementById("target")
-  var style  = div.style
+  var style = div.style
   console.log(style)
   if (style.display == "none" || !ev) {
     // Always show image when loading image or clearing KB data
     style.display = "flex"
-    Object.apply(div.style, style)  
+    Object.apply(div.style, style)
     return
   }
   style.display = "none"
-  Object.apply(div.style, style)  
+  Object.apply(div.style, style)
 }
 
 // Ken Burns animation worker
@@ -199,7 +205,7 @@ const exampleAnimation =
         .then(() => continueLoop && exampleAnimation(kenBurns)(source)); // loop again
 //#endregion
 
-//#region  Animation structures and data
+//#region  Animation constants and datat structures
 const color = ['red', 'gold', 'green', 'black', 'blue', 'cyan']
 const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay']
 // KB Center Point & Zoom levels for animation freeze-frame 
@@ -215,7 +221,6 @@ const zoom = [
   0.1,
   0.2,
 ];
-const cropzones = [];
 // Frame transition easing
 const easings = [
   bezierEasing(0.6, 0, 1, 1),
@@ -253,34 +258,31 @@ let continueLoop = true;
 //#endregion KB points
 
 // describe our loop example
-let exampleImageUrl = "http://i.imgur.com/Uw2EQEk.jpg";
-
-function anim() {
-  requestAnimationFrame(anim);
-}
-
+let exampleImageUrl = "download.jpg" // "http://i.imgur.com/Uw2EQEk.jpg"
+var canvasDeminsions = { width: 400, height: 400 }
 var canvas;  // Ken Burns canvas for rendering
+
 const createKBCanvas = () => {
   // Canvas2D example
   var canvas2d = document.createElement("canvas");
-  canvas2d.style.width = "400px";
-  canvas2d.style.height = "400px";
-  canvas2d.width = 800;
-  canvas2d.height = 800;
+  canvas2d.style.width = `${canvasDeminsions.width}px`
+  canvas2d.style.height = `${canvasDeminsions.height}px`
+  canvas2d.width = canvasDeminsions.width
+  canvas2d.height = canvasDeminsions.height
   return canvas2d
 }
 
 function doImageMapping(imageUrl) {
   exampleImageUrl = imageUrl;
   if (canvas) {
-    canvas.remove()
+    side.innerHTML = ""
   }
   canvas = createKBCanvas()
 
   const ctx = canvas.getContext("2d");
-  // resetCanvas(ctx)
+  const dimInputs = imageDimensionsInputs()
+  side.appendChild(dimInputs)
   side.appendChild(canvas);
-  // console.log(row)
   var kenBurnsCanvas2d = new KenBurnsCanvas2D(ctx);
   console.log('starting KB map')
   loadCrossOriginImage(imageUrl, true)
@@ -289,101 +291,25 @@ function doImageMapping(imageUrl) {
 
   // Load full image with on-click handler
   loadCrossOriginImage(imageUrl).then(img => {
-    console.log(
-      'loaded the image  with w: %d by h: %d',
-      img.width,
-      img.height,
-    );
-
-    // imageData = image
+    console.log(`loaded the image with w: ${img.width} by h: ${img.height}`);
     imgDeminsions.width = img.width;
     imgDeminsions.height = img.height;
     imgCanvas.width = img.width
     imgCanvas.height = img.height
     imgContext.drawImage(img, 0, 0);
-    // var _canvas =  new fabric.Canvas(imageUrl, {
-    //   width: image.width,
-    //   height: image.height,
-
-    //   // backgroundImage: imageData,
-    //   containerClass: 'canvas-wrap',
-    //   enableRetinaScaling: false,
-    //   interactive: true, 
-    // });
-    for (var i = 0; i < zoom.length; i++) {
-      wrectCrop(zoom[i], centerPoints[i], color[i % color.length]);
-    }
-
     imgCanvas.addEventListener('click', canvasClick, false);
+
+    for (var i = 0; i < zoom.length; i++) {
+      drawRectCrop(zoom[i], centerPoints[i], color[i % color.length]);
+    }
   });
-}
-
-const createCropZone = (i) => {
-  const rectBounds = rectangleBounds(centerPoints[i], zoom[i])
-  //CanvasRect.strokeRect(x: number, y: number, w: number, h: number): void
-  console.log(`adding CZ ${JSON.stringify(rectBounds)}`)
-  const rect = new fabric.Rect(
-    {
-      originX: "left",
-      originY: "top",
-      top: rectBounds[0],
-      left: rectBounds[1],
-      width: rectBounds[2],
-      height: rectBounds[3],
-      strokeWidth: 1, // {@link https://github.com/kangax/fabric.js/issues/2860}
-      cornerSize: 10,
-      cornerColor: 'black',
-      borderColor: color[i % (color.length)],
-      // selectionBackgroundColor: 'lightblue',
-      fill: 'none',
-      hasRotatingPoint: false,
-      hasBorders: true,
-      lockScalingFlip: true,
-      lockRotation: true,
-      lockSkewingX: true,
-      lockSkewingY: true,
-    },
-  )
-  return rect;
-
 }
 
 var imgDeminsions = { width: 0, height: 0 };
 var imgCanvas = document.getElementById("canvas");
 var imgContext = imgCanvas.getContext('2d');
-
 let image = new Image();
-let imageData = new Image();
-var wrectCrop = (zoom, center, color) => {
-  var viewportRatio = 1
-  var dimensionRatio = imgDeminsions.width / imgDeminsions.height;
 
-  var maxRatio = Math.max(viewportRatio, dimensionRatio);
-  var zoomedCanvasSize = [
-    (viewportRatio / maxRatio) * imgDeminsions.width * zoom,
-    (dimensionRatio / maxRatio) * imgDeminsions.height * zoom
-  ];
-  var centerX = imgDeminsions.width * center[0];
-  var centerY = imgDeminsions.height * center[1];
-
-  var rect = [
-    (centerX - zoomedCanvasSize[0] / 2) > 0 ? centerX - zoomedCanvasSize[0] / 2 : 0,
-    (centerY - zoomedCanvasSize[1] / 2) > 0 ? centerY - zoomedCanvasSize[1] / 2 : 0,
-    zoomedCanvasSize[0],
-    zoomedCanvasSize[1]
-  ];
-  //   console.log(`${color} rect ${JSON.stringify(rect)} z ${zoomedCanvasSize}`)
-  imgContext.beginPath();
-
-  imgContext.strokeStyle = color;
-  imgContext.beginPath();
-  imgContext.arc(centerX, centerY, 10, 0, 2 * Math.PI, false);
-  imgContext.fillStyle = color;
-  imgContext.fill();
-  imgContext.lineWidth = 5;
-  imgContext.strokeRect(rect[0], rect[1], rect[2], rect[3])
-
-}
 const randomHundreth = () => Math.floor(10 + Math.random() * 90) / 100
 var canvasClick = (ev) => {
   var cX = ev.offsetX / imgCanvas.width
@@ -415,29 +341,29 @@ const newImage = (image) => {
 }
 
 //#region append elements to the DOM
-const row = document.createElement("div");
 const waypoints = document.getElementById("waypoints");
 const header = document.getElementById("header");
-const easel = document.getElementById("target");
 const container = document.getElementById("side");
 const controls = document.getElementById("controls");
+const buttonRow = document.createElement("div");
 
-header.appendChild(title("Image"));
-easel.appendChild(imgCanvas);
+header.appendChild(title("Image Ken Burns Effect"));
 doImageMapping(exampleImageUrl)
 
-controls.appendChild(title("Buttons"))
-controls.appendChild(row);
-row.appendChild(renderUi.select(newImage))
-row.appendChild(renderUi.button('Clear Data', clearKBData))
-row.appendChild(renderUi.button('Toggle Image', imageToggle))
-row.appendChild(renderUi.button('dataDump', dumpKBData))
-row.appendChild(renderUi.button('ReyKey Data', () => doImageMapping(exampleImageUrl)))
-row.appendChild(renderUi.button('startRecording', startRecording))
+controls.appendChild(buttonRow);
+buttonRow.appendChild(renderUi.selectFile(newImage))
+buttonRow.appendChild(renderUi.button('Clear Waypoints', clearKBData))
+buttonRow.appendChild(renderUi.button('Toggle Image', imageToggle))
+buttonRow.appendChild(renderUi.button('Console Dump', dumpKBData))
+buttonRow.appendChild(renderUi.button('Restart loop', () => doImageMapping(exampleImageUrl)))
+buttonRow.appendChild(renderUi.button('startRecording', startRecording))
 dispalyWaypoints()
 //#endregion
 
 //#region WebM helper methods
+function recordingLength() {
+  return Number.parseFloat(simpleArraySum(durations)) + Number.parseFloat(simpleArraySum(delays))
+}
 
 function startRecording() {
   const recordDuration = recordingLength();
@@ -446,6 +372,7 @@ function startRecording() {
     console.log('noting to record')
     return
   }
+  doImageMapping(exampleImageUrl)
   anim()
   const chunks = []; // here we will store our recorded media chunks (Blobs)
   const stream = canvas.captureStream(); // grab our canvas MediaStream
@@ -476,17 +403,5 @@ function exportVid(blob) {
 
 function anim() {
   requestAnimationFrame(anim);
-}
-
-function exportVid(blob) {
-  const vid = document.createElement('video');
-  vid.src = URL.createObjectURL(blob);
-  vid.controls = true;
-  container.appendChild(vid);
-  const a = document.createElement('a');
-  a.download = 'myvid.webm';
-  a.href = vid.src;
-  a.textContent = 'download the video';
-  container.appendChild(a);
 }
 //#endregion

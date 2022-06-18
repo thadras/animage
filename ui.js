@@ -10,23 +10,22 @@ let renderUi = {
   },
 
 
-  select: function (loaded) {
+  selectFile: function (loaded) {
     const handler = (ev) => {
-      console.log('You selected the file %s', ev.target.files[0].name);
       createImageFromBlob(ev.target.files[0], loaded)
     }
-    const label = document.createElement("label")
-    label.for = "userFile"
+    const div = document.createElement("div")
     const input = document.createElement("input")
+    const button = document.createElement("button");
     input.type = 'file';
     input.accept = "image/*";
-    input.id = "userFile"
     input.addEventListener('change', handler)
-    input.style = { display: "none" }
-    // label.appendChild(button("Select File", input.change))
-    label.appendChild(input)
-
-    return label;
+    input.style.display = "none" 
+    button.addEventListener('click', () => input.click());
+    button.innerText = "Select File"
+    div.appendChild(input)
+    div.appendChild(button)
+    return div;
   },
 
   input:function(inputLabel, value, key, callback){
@@ -37,6 +36,7 @@ let renderUi = {
     label.innerText = inputLabel
     label.for = input.id = inputKey
     input.value = value
+    input.className = 'text-input'
     input.addEventListener('change', (val ) => callback(val, inputKey), false)
     div.appendChild(label)
     div.appendChild(input)
