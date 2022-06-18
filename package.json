@@ -1,0 +1,30 @@
+{
+    "name": "animage",
+    "version": "1.0.0",
+    "description": "",
+    "main": "advanced.js",
+    "scripts": {
+      "start": "budo index.js:bundle.js -w -- -t babelify",
+      "build": "NODE_ENV=production browserify index.js -t babelify | uglifyjs --compress --mangle > bundle.js",
+      "deploy": "surge -p . -d kenburns.surge.sh"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "bezier-easing": "2.0.3",
+      "gl-texture2d": "2.1.0",
+      "fabric": "^4.2.0",
+      "kenburns": "2.0.3",
+      "rect-crop": "0.0.0",
+      "tui-code-snippet": "^2.3.3"
+    },
+    "devDependencies": {
+      "babel-preset-es2015": "^6.18.0",
+      "babel-preset-stage-1": "^6.16.0",
+      "babelify": "^7.3.0",
+      "budo": "^9.3.0",
+      "flow-bin": "^0.37.0",
+      "flow-copy-source": "^1.1.0",
+      "uglify-js": "^2.7.5"
+    }
+  }
