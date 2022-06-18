@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,54 +16,67 @@
     margin-inline-end: 0px;
     font-weight: bold;
   }
+
   .canvas-wrap {
     border: thin red solid;
     position: relative;
   }
 
   .wrapper {
-			display: grid;
-			grid-template-columns: 1fr 5fr 2fr;
-			grid-template-rows: 5fr 20fr 5fr;
-			grid-gap: 10px;
-			height: 720px;
-		}
+    display: grid;
+    grid-template-columns: 1fr 5fr 2fr;
+    grid-template-rows: 5fr 20fr 5fr;
+    grid-gap: 10px;
+    height: 720px;
+  }
 
-		header {
-			grid-column-start: 1;
-			grid-column-end: 4;
-		}
+  header {
+    grid-column-start: 1;
+    grid-column-end: 4;
+  }
 
-		footer {
-			grid-column-start: 1;
-			grid-column-end: 4;
-		}
+  footer {
+    grid-column-start: 1;
+    grid-column-end: 4;
+    padding: 8px
+  }
 
-		.wrapper * {
-			background: lightgray;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			margin-bottom: 1px;
-			margin-right: 1px;
-		}
-    .column {
-      flex-direction: column;
-    }
-  </style>
-  <body>
+  .wrapper * {
+    background: lightgray;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1px;
+    margin-right: 1px;
+  }
+
+  .column {
+    flex-direction: column;
+  }
+
+  .items {
+    display: flex;
+  }
+
+  button {
+    margin: 8px;
+    padding: 12px;
+  }
+</style>
+
+<body>
   <div class="wrapper">
-    <header id="header" class="items"></header>
+    <header id="header"></header>
     <nav class="items">
-      <div id="waypoints"></div></nav>
+      <div id="waypoints" class="column"></div>
+    </nav>
     <div class="items contents" id="target" style="position: relative">
-      <div class="canvas-wrap">
-        <canvas id="canvas" class="canvas-wrap" ></canvas>
-      </div>       
+      <canvas id="canvas" class="canvas-wrap"></canvas>
     </div>
     <aside id="side" class="items column"></aside>
-    <footer id="controls" class="items"></footer>
+    <footer id="controls" class="spacer"></footer>
   </div>
   <script src="bundle.js"></script>
 </body>
+
 </html>
