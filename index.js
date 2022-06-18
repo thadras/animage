@@ -35,7 +35,7 @@ var drawRectCrop = (zoom, center, color) => {
   var centerX = imgDeminsions.width * center[0];
   var centerY = imgDeminsions.height * center[1];
   var rect = rectCrop(zoom, center)(canvasDeminsions, imgDeminsions);
-  
+  console.log(rect)
   imgContext.beginPath();
   imgContext.strokeStyle = color;
   imgContext.beginPath();
@@ -43,7 +43,25 @@ var drawRectCrop = (zoom, center, color) => {
   imgContext.fillStyle = color;
   imgContext.fill();
   imgContext.lineWidth = 5;
-  imgContext.strokeRect(rect[0], rect[1], rect[2], rect[3])
+  let x = rect[0]
+  let y = rect[1]
+  const w = rect[2]
+  const h = rect[3]
+  // Out-of-bounds corrections
+  if (x < 0) {
+    x=0
+  }
+  if (x + w > imgDeminsions.width) {
+    x = imgDeminsions.width - w
+  }
+
+  if (y < 0) {
+    y=0
+  }
+  if (y + h > imgDeminsions.height) {
+    y = imgDeminsions.height - h
+  }
+  imgContext.strokeRect(x, y, w, h)
 }
 
 function displayArray(data) {
