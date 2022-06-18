@@ -1,30 +1,69 @@
-function button(text, handler) {
-  const button = document.createElement("button");
-  button.addEventListener('click', handler);
-  button.innerText = text;
-  return button;
-}
+const { callbackify } = require("util");
+
+let renderUi = {
+
+  button: function (text, handler) {
+    const button = document.createElement("button");
+    button.addEventListener('click', handler);
+    button.innerText = text;
+    return button;
+  },
 
 
-button.select = (loaded) => {
-  const handler = (ev) => {
-    console.log('You selected the file %s', ev.target.files[0].name);
-    createImageFromBlob(ev.target.files[0], loaded)
+  select: function (loaded) {
+    const handler = (ev) => {
+      console.log('You selected the file %s', ev.target.files[0].name);
+      createImageFromBlob(ev.target.files[0], loaded)
+    }
+    const label = document.createElement("label")
+    label.for = "userFile"
+    const input = document.createElement("input")
+    input.type = 'file';
+    input.accept = "image/*";
+    input.id = "userFile"
+    input.addEventListener('change', handler)
+    input.style = { display: "none" }
+    // label.appendChild(button("Select File", input.change))
+    label.appendChild(input)
+
+    return label;
+  },
+
+  input:function(inputLabel, value, key, callback){
+    const inputKey = `${inputLabel}_${key}`
+    const div = document.createElement("div")
+    const label = document.createElement("label")
+    const input = document.createElement("input")
+    label.innerText = inputLabel
+    label.for = input.id = inputKey
+    input.value = value
+    input.addEventListener('change', (val ) => callback(val, inputKey), false)
+    div.appendChild(label)
+    div.appendChild(input)
+    return div
+  },
+
+  slider:function(inputLabel, value, key, callback){
+    const inputKey = `${inputLabel}_${key}`
+    const div = document.createElement("div")
+    div.className = "slidecontainer"
+    const label = document.createElement("label")
+    const input = document.createElement("input")
+    label.innerText = inputLabel
+    label.for = input.id = inputKey
+    input.value = value*100
+    input.type = "range"
+    input.className = "slider"
+    input.min = 1
+    input.max = 100
+    input.addEventListener('change', (val ) => callback(val, inputKey), false)
+    div.appendChild(label)
+    div.appendChild(input)
+    return div
+   
   }
-  const label = document.createElement("label")
-  label.for = "userFile"
-  const input = document.createElement("input")
-  input.type = 'file';
-  input.accept = "image/*";
-  input.id = "userFile"
-  input.addEventListener('change', handler)
-  input.style = { display: "none" }
-  // label.appendChild(button("Select File", input.change))
-  label.appendChild(input)
-
-  return label;
+  
 }
-
 function createImageFromBlob(image, loaded) {
   const reader = new FileReader();
   const type = image.type.split('/');
@@ -82,4 +121,5 @@ const doFileRead = (reader, loaded) => {
     loaded(image.src)
   });
 }
-module.exports = button;
+
+module.exports = renderUi;

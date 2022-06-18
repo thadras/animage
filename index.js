@@ -1,7 +1,7 @@
 import KenBurnsCanvas2D from "kenburns/lib/Canvas2D";
 import bezierEasing from "bezier-easing";
 import rectCrop from "rect-crop";
-import button from "./ui"
+import renderUi from "./ui"
 import { fabric } from "fabric";
 
 
@@ -34,7 +34,9 @@ function simpleArraySum(ar) {
 }
 
 function recordingLength() {
-  return simpleArraySum(durations) + simpleArraySum(delays);
+  const value = Number.parseFloat(simpleArraySum(durations)) + Number.parseFloat(simpleArraySum(delays));
+  console.log(value)
+  return value
 }
 
 function displayArray(data) {
@@ -85,7 +87,7 @@ function rectangleBounds(center, zoom) {
 }
 
 function dumpKBData() {
-  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, cropzones sum ${recordDuration}`)
+  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, cropzones sum ${recordingLength()}`)
   displayArray(centerPoints);
   displayArray(zoom);
   displayArray(durations);
@@ -99,24 +101,73 @@ function dumpKBData() {
 function dispalyWaypoints() {
   waypoints.innerHTML = ""
   for (var i = 0; i < centerPoints.length; i++) {
-    const div = document.createElement("div");
+    const div = document.createElement("div")
     div.className = "column"
     const p1 = document.createElement("p");
-    let text = `${i}: c[${centerPoints[i][0]}, ${centerPoints[i][1]}]; z: ${zoom[i]}`
-    p1.innerText = text;
+    let text = `Waypoint ${i}: Color: ${color[i%color.length]}`
+    p1.innerText = text
+    const style = {
+      color: color[i%color.length],
+    }
     p1.className = "items"
+    Object.assign(p1.style, style)
     const p2 = document.createElement("p");
     text = `duration:${durations[i] / 1000}; delay:${delays[i] / 1000}`
     p2.className = "items"
-    p2.innerText = text;
+    p2.innerText = text
     div.appendChild(p1)
-    div.appendChild(p2)
     waypoints.appendChild(div)
+    var uiCxInput = renderUi.slider(labels[0], centerPoints[i][0], i, inputChanged);
+    var uiCyInput = renderUi.slider(labels[1], centerPoints[i][1], i, inputChanged);
+    var uiZInput = renderUi.slider(labels[2], zoom[i], i, inputChanged);
+    // var uiDurInput = renderUi.input(labels[3], durations[i], i, inputChanged);
+    // var uiDelInput = renderUi.input(labels[4], delays[i], i, inputChanged);
+    var uiSDurInput = renderUi.slider(labels[3], durations[i]/10000, i, inputChanged);
+    var uiSDelInput = renderUi.slider(labels[4], delays[i]/10000, i, inputChanged);
+    // uiDurInput.className =uiDelInput.className = "items"
+    waypoints.appendChild(uiCxInput)
+    waypoints.appendChild(uiCyInput)
+    waypoints.appendChild(uiZInput)
+    // waypoints.appendChild(uiDurInput)
+    waypoints.appendChild(uiSDurInput)
+    // waypoints.appendChild(uiDelInput)
+    waypoints.appendChild(uiSDelInput)
+    waypoints.appendChild(p2)
     waypoints.appendChild(document.createElement("br"))
   }
+  const rec = document.createElement("p");
+  rec.innerText = `Legnth: ${(recordingLength()/1000).toFixed(3)}s`
+  waypoints.appendChild(rec)
+
 
 }
 
+function inputChanged(ev, key) {
+  const emitter = document.getElementById(key)
+  const mapper = key.split('_')
+  console.groupCollapsed(`received change on ${JSON.stringify(mapper)} to value ${emitter.value}`)
+  console.log(ev)
+  console.groupEnd()
+  switch(mapper[0]) {
+    case labels[0]:
+      centerPoints[mapper[1]][0] = emitter.value/100;
+      break;
+    case labels[1]:
+      centerPoints[mapper[1]][1] = emitter.value/100;
+      break;
+    case labels[2]:
+      zoom[mapper[1]] = emitter.value/100;
+      break;
+    case labels[3]:
+      durations[mapper[1]] = emitter.value*100;
+      break;
+    case labels[4]:
+      delays[mapper[1]] = emitter.value*100;
+      break;
+    }
+    doImageMapping(exampleImageUrl);
+    dispalyWaypoints()
+}
 function imageToggle(ev) {
   const div = document.getElementById("target")
   var style  = div.style
@@ -150,6 +201,7 @@ const exampleAnimation =
 
 //#region  Animation structures and data
 const color = ['red', 'gold', 'green', 'black', 'blue', 'cyan']
+const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay']
 // KB Center Point & Zoom levels for animation freeze-frame 
 const centerPoints = [
   [0.15, 0.38],
@@ -196,7 +248,6 @@ const crops = [
   rectCrop(zoom[3], centerPoints[3]),
   rectCrop.largest,
 ];
-let recordDuration = recordingLength();
 let continueLoop = true;
 
 //#endregion KB points
@@ -348,7 +399,6 @@ var canvasClick = (ev) => {
   delays.push((randomHundreth() * 1000).toFixed(2))
   crops.push(rectCrop(zoom[wayPoints], centerPoints[wayPoints]));
   continueLoop = true;
-  recordDuration = recordingLength();
   // const cz = createCropZone(wayPoints)
   // _canvas.add(cz)
   // console.log(cz)
@@ -378,18 +428,24 @@ doImageMapping(exampleImageUrl)
 
 controls.appendChild(title("Buttons"))
 controls.appendChild(row);
-row.appendChild(button.select(newImage))
-row.appendChild(button('Clear Data', clearKBData))
-row.appendChild(button('Toggle Image', imageToggle))
-row.appendChild(button('dataDump', dumpKBData))
-row.appendChild(button('ReyKey Data', () => doImageMapping(exampleImageUrl)))
-row.appendChild(button('startRecording', startRecording))
+row.appendChild(renderUi.select(newImage))
+row.appendChild(renderUi.button('Clear Data', clearKBData))
+row.appendChild(renderUi.button('Toggle Image', imageToggle))
+row.appendChild(renderUi.button('dataDump', dumpKBData))
+row.appendChild(renderUi.button('ReyKey Data', () => doImageMapping(exampleImageUrl)))
+row.appendChild(renderUi.button('startRecording', startRecording))
 dispalyWaypoints()
 //#endregion
 
 //#region WebM helper methods
 
 function startRecording() {
+  const recordDuration = recordingLength();
+
+  if (!recordDuration) {
+    console.log('noting to record')
+    return
+  }
   anim()
   const chunks = []; // here we will store our recorded media chunks (Blobs)
   const stream = canvas.captureStream(); // grab our canvas MediaStream
