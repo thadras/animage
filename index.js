@@ -35,7 +35,6 @@ var drawRectCrop = (zoom, center, color) => {
   var centerX = imgDeminsions.width * center[0];
   var centerY = imgDeminsions.height * center[1];
   var rect = rectCrop(zoom, center)(canvasDeminsions, imgDeminsions);
-  console.log(rect)
   imgContext.beginPath();
   imgContext.strokeStyle = color;
   imgContext.beginPath();
@@ -51,14 +50,14 @@ var drawRectCrop = (zoom, center, color) => {
   if (x < 0) {
     x=0
   }
-  if (x + w > imgDeminsions.width) {
+  else if (x + w > imgDeminsions.width) {
     x = imgDeminsions.width - w
   }
 
   if (y < 0) {
     y=0
   }
-  if (y + h > imgDeminsions.height) {
+  else if (y + h > imgDeminsions.height) {
     y = imgDeminsions.height - h
   }
   imgContext.strokeRect(x, y, w, h)
@@ -283,6 +282,7 @@ var canvas;  // Ken Burns canvas for rendering
 const createKBCanvas = () => {
   // Canvas2D example
   var canvas2d = document.createElement("canvas");
+  canvas2d.id = "animCanvas"
   canvas2d.style.width = `${canvasDeminsions.width}px`
   canvas2d.style.height = `${canvasDeminsions.height}px`
   canvas2d.width = canvasDeminsions.width
@@ -373,8 +373,9 @@ buttonRow.appendChild(renderUi.selectFile(newImage))
 buttonRow.appendChild(renderUi.button('Clear Waypoints', clearKBData))
 buttonRow.appendChild(renderUi.button('Toggle Image', imageToggle))
 buttonRow.appendChild(renderUi.button('Console Dump', dumpKBData))
-buttonRow.appendChild(renderUi.button('Restart loop', () => doImageMapping(exampleImageUrl)))
-buttonRow.appendChild(renderUi.button('startRecording', startRecording))
+buttonRow.appendChild(renderUi.button('Restart Loop', () => doImageMapping(exampleImageUrl)))
+buttonRow.appendChild(renderUi.button('WebM Recording', startRecording))
+buttonRow.appendChild(renderUi.button('GIF Recording', startGif))
 dispalyWaypoints()
 //#endregion
 
@@ -421,5 +422,65 @@ function exportVid(blob) {
 
 function anim() {
   requestAnimationFrame(anim);
+}
+//#endregion
+
+//#region GIF recorder
+// Adapted from https://dev.to/melissamcewen/code-experiment-converting-canvas-animations-to-gifs-58hh
+function startGif() {
+  let numFrames = Math.round(recordingLength()/100);
+  let canvas = document.getElementById("animCanvas");
+
+  let gif = new GIF({
+    workers: 2,
+    quality: 10,
+    loop: true,
+  });
+  //https://codepen.io/agar3s/pen/pJpoya
+  let ctx = canvas.getContext("2d");
+  ctx.lineJoin = "round";
+  ctx.globalCompositeOperation = "lighter";
+  console.log(`Starting GIF of ${numFrames} frames`)
+  let x = 0;
+  let y = 0;
+  let rendered = false;
+  function loop() {
+    x += 2;
+    y += 2;
+    if (x > numFrames*2) {
+      x = -50;
+      y = -50;
+      if (rendered === false) {
+        console.log("rendering frame");
+        gif.render();
+      } else {
+        requestAnimationFrame(loop);
+      }
+    } else {
+      if (rendered === false) {
+          console.log("rendering frame");
+        gif.addFrame(canvas, {
+          copy: true,
+          delay: 50
+        });
+      }
+      setTimeout(() => requestAnimationFrame(loop), 100)
+    }
+  }
+
+  requestAnimationFrame(loop);
+
+  gif.on("finished", function(blob) {
+    const div = document.createElement("div")
+    const img = document.createElement("img")
+    div.className = "column"
+    img.src = URL.createObjectURL(blob);
+    console.log("rendered GIF");
+    div.appendChild(title("GIF"))
+    div.appendChild(img)
+    container.appendChild(div)
+    rendered = true;
+    requestAnimationFrame(loop);
+  });
 }
 //#endregion
