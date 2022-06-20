@@ -54,6 +54,7 @@ let renderUi = {
     input.value = value*100
     input.type = "range"
     input.className = "slider"
+    input.step = 1
     input.min = 1
     input.max = 100
     input.addEventListener('change', (val ) => callback(val, inputKey), false)

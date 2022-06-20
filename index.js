@@ -121,17 +121,36 @@ function dispalyWaypoints() {
     p2.className = "items"
     p2.innerText = text
     div.appendChild(p1)
+    // TODO: Conditional Checkbox
+    let textInputs = true;
     waypoints.appendChild(div)
+    // SLIDERS
     var uiCxInput = renderUi.slider(labels[0], centerPoints[i][0], i, inputChanged);
     var uiCyInput = renderUi.slider(labels[1], centerPoints[i][1], i, inputChanged);
     var uiZInput = renderUi.slider(labels[2], zoom[i], i, inputChanged);
     var uiSDurInput = renderUi.slider(labels[3], durations[i] / 10000, i, inputChanged);
     var uiSDelInput = renderUi.slider(labels[4], delays[i] / 10000, i, inputChanged);
+
+    if (textInputs) {
+      // TEXT
+      var tuiCxInput = renderUi.input(labels[5], centerPoints[i][0]*100, i, inputChanged);
+      var tuiCyInput = renderUi.input(labels[6], centerPoints[i][1]*100, i, inputChanged);
+      var tuiZInput = renderUi.input(labels[7], zoom[i]*100, i, inputChanged);
+      var tuiSDurInput = renderUi.input(labels[8], durations[i], i, inputChanged);
+      var tuiSDelInput = renderUi.input(labels[9], delays[i] , i, inputChanged);
+    }
+
     waypoints.appendChild(uiCxInput)
+    if (textInputs) waypoints.appendChild(tuiCxInput)
     waypoints.appendChild(uiCyInput)
+    if (textInputs) waypoints.appendChild(tuiCyInput)
     waypoints.appendChild(uiZInput)
+    if (textInputs) waypoints.appendChild(tuiZInput)
     waypoints.appendChild(uiSDurInput)
+    if (textInputs) waypoints.appendChild(tuiSDurInput)
     waypoints.appendChild(uiSDelInput)
+    if (textInputs) waypoints.appendChild(tuiSDelInput)
+
     waypoints.appendChild(p2)
     waypoints.appendChild(document.createElement("br"))
   }
@@ -157,22 +176,37 @@ function inputChanged(ev, key) {
   console.groupCollapsed(`received change on ${JSON.stringify(mapper)} to value ${emitter.value}`)
   console.log(ev)
   console.groupEnd()
+
+  // Error Checking
+  if (isNaN(emitter.value)) {
+    console.error(`${key} input of ${emitter.value} is NaN, so input rejected 🤷‍♂️`)
+    emitter.style.outline = '1px solid red'
+    return
+  }
+
   switch (mapper[0]) {
     case labels[0]:
+    case labels[5]:
       centerPoints[idx][0] = emitter.value / 100;
       break;
     case labels[1]:
+    case labels[6]:
       centerPoints[idx][1] = emitter.value / 100;
       break;
     case labels[2]:
+    case labels[7]:
       zoom[idx] = emitter.value / 100;
       break;
     case labels[3]:
+    case labels[8]:
       durations[idx] = emitter.value * 100;
       break;
     case labels[4]:
+    case labels[9]:
       delays[idx] = emitter.value * 100;
       break;
+    default:
+      console.log(mappern)
   }
   crops[idx] = rectCrop(zoom[idx], centerPoints[idx])
   doImageMapping(exampleImageUrl);
@@ -223,8 +257,8 @@ const exampleAnimation =
 //#endregion
 
 //#region  Animation constants and datat structures
-const color = ['red', 'gold', 'green', 'black', 'blue', 'cyan']
-const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay']
+const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
+const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS']
 // KB Center Point & Zoom levels for animation freeze-frame 
 const centerPoints = [
   [0.15, 0.38],
@@ -365,7 +399,7 @@ const container = document.getElementById("side");
 const controls = document.getElementById("controls");
 const buttonRow = document.createElement("div");
 
-header.appendChild(title("Image Ken Burns Effect"));
+header.appendChild(title("Animage Ken Burns Render"));
 doImageMapping(exampleImageUrl)
 
 controls.appendChild(buttonRow);
@@ -428,22 +462,32 @@ function anim() {
 //#region GIF recorder
 // Adapted from https://dev.to/melissamcewen/code-experiment-converting-canvas-animations-to-gifs-58hh
 function startGif() {
+  if (!recordingLength()) {
+    console.log('noting to record')
+    return
+  }
+
   let numFrames = Math.round(recordingLength()/100);
   let canvas = document.getElementById("animCanvas");
-
   let gif = new GIF({
     workers: 2,
     quality: 10,
     loop: true,
+    // TODO: Conditional Checkbox
+    // transparent: true,
   });
   //https://codepen.io/agar3s/pen/pJpoya
   let ctx = canvas.getContext("2d");
-  ctx.lineJoin = "round";
-  ctx.globalCompositeOperation = "lighter";
-  console.log(`Starting GIF of ${numFrames} frames`)
   let x = 0;
   let y = 0;
   let rendered = false;
+
+  ctx.lineJoin = "round";
+  ctx.globalCompositeOperation = "lighter";
+  console.log(`Starting GIF of ${numFrames} frames`)
+  // Start loop at beginning
+  doImageMapping(exampleImageUrl)
+
   function loop() {
     x += 2;
     y += 2;
@@ -451,14 +495,14 @@ function startGif() {
       x = -50;
       y = -50;
       if (rendered === false) {
-        console.log("rendering frame");
+        console.log("Rendering frame");
         gif.render();
       } else {
         requestAnimationFrame(loop);
       }
     } else {
       if (rendered === false) {
-          console.log("rendering frame");
+          console.log(`Rendering Gif of ${numFrames} frames`);
         gif.addFrame(canvas, {
           copy: true,
           delay: 50
@@ -475,7 +519,7 @@ function startGif() {
     const img = document.createElement("img")
     div.className = "column"
     img.src = URL.createObjectURL(blob);
-    console.log("rendered GIF");
+    console.log(`Gif rendered of ~${recordingLength()}s`);
     div.appendChild(title("GIF"))
     div.appendChild(img)
     container.appendChild(div)
