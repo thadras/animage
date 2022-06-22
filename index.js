@@ -1,5 +1,6 @@
 import KenBurnsCanvas2D from "kenburns/lib/Canvas2D";
 import bezierEasing from "bezier-easing";
+import { fabric } from "fabric";
 import rectCrop from "rect-crop";
 import renderUi from "./ui"
 
@@ -60,7 +61,29 @@ var drawRectCrop = (zoom, center, color) => {
   else if (y + h > imgDeminsions.height) {
     y = imgDeminsions.height - h
   }
+  console.log(`drawRect ${x},  ${y}, ${w}, ${h}, ${color}`)
   imgContext.strokeRect(x, y, w, h)
+
+  var cz = new fabric.Rect({
+    originX: 'left',
+    originY: 'top',
+    left : x,
+    top : y,
+    width : w,
+    height : h,
+    stroke: color,
+    // TODO: Does not seem to work 🤦‍♂️
+    strokeStyle: {strokeWidth: '42px' },
+    fill : 'transparent',
+    // lockUniScaling: true wont allow resizing with other locking,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockRotation: true,
+  });
+  cropZones.push(cz)
+  _canvas.add(cz)
+  _canvas.renderAll()
+
 }
 
 function displayArray(data) {
@@ -78,7 +101,7 @@ function clearKBData() {
   delays.splice(0, delays.length);
   crops.splice(0, crops.length);
   easings.splice(0, easings.length);
-  // cropzones.splice(0, cropzones.length);
+  resetCropZones();
   continueLoop = false;
   canvas.remove()
   dumpKBData();
@@ -96,7 +119,7 @@ function dumpKBData() {
   displayArray(zoom);
   displayArray(durations);
   displayArray(delays);
-  // displayArray(cropzones);
+  displayArray(cropZones);
   console.log(canvasDeminsions)
   console.groupEnd();
   dispalyWaypoints();
@@ -304,6 +327,9 @@ const crops = [
   rectCrop(zoom[3], centerPoints[3]),
   rectCrop.largest,
 ];
+// Fabric objects to be filled by doImageMapping calling drawRectCrop
+const cropZones = [];
+
 let continueLoop = true;
 
 //#endregion KB points
@@ -322,6 +348,14 @@ const createKBCanvas = () => {
   canvas2d.width = canvasDeminsions.width
   canvas2d.height = canvasDeminsions.height
   return canvas2d
+}
+
+function resetCropZones() {
+  cropZones.forEach(obj => {
+    console.log(obj)
+    _canvas.remove(obj)
+  })
+  cropZones.splice(0, cropZones.length);
 }
 
 function doImageMapping(imageUrl) {
@@ -344,6 +378,11 @@ function doImageMapping(imageUrl) {
   // Load full image with on-click handler
   loadCrossOriginImage(imageUrl).then(img => {
     console.log(`loaded the image with w: ${img.width} by h: ${img.height}`);
+    var f_img = new fabric.Image(img);
+    _canvas.setWidth(img.width)
+    _canvas.setHeight(img.height)
+    _canvas.setBackgroundImage(f_img);
+
     imgDeminsions.width = img.width;
     imgDeminsions.height = img.height;
     imgCanvas.width = img.width
@@ -351,6 +390,7 @@ function doImageMapping(imageUrl) {
     imgContext.drawImage(img, 0, 0);
     imgCanvas.addEventListener('click', canvasClick, false);
 
+    resetCropZones()
     for (var i = 0; i < zoom.length; i++) {
       drawRectCrop(zoom[i], centerPoints[i], color[i % color.length]);
     }
@@ -412,6 +452,74 @@ buttonRow.appendChild(renderUi.button('WebM Recording', startRecording))
 buttonRow.appendChild(renderUi.button('GIF Recording', startGif))
 dispalyWaypoints()
 //#endregion
+
+//#region Fabric helper methods
+imageToggle(1)  // Hide ordinary canvas till ready to replace it with fabric canvas
+var _canvas =  new fabric.Canvas('fabric-canvas', {
+  width: 500,
+  height: 500,
+  containerClass: 'fabric-canvas',
+  enableRetinaScaling: false,
+  interactive: true,
+  selection : false,
+  controlsAboveOverlay:true,
+  centeredScaling:true,
+  allowTouchScrolling: true,
+  selectionLineWidth: 42,
+});
+var fab = document.getElementById("fabric-canvas")
+fab.addEventListener('click', fabclick);
+function fabclick(ev){
+  console.log(ev)
+  _canvas.add(new fabric.Circle({
+    radius: 10, fill: 'green', left: ev.offsetX, top: ev.offsetY
+    // radius: 20, fill: 'green', left: 100, top: 100
+  }));
+}
+
+//handler for done modifying objects on canvas
+var modifiedHandler = function (evt) {
+  var modifiedObject = evt.target;
+  console.groupCollapsed(modifiedObject.get('left'), modifiedObject.get('top'));
+  console.log(modifiedObject)
+  console.groupEnd()
+  // TODO update centerpoint and zoom arrays
+  // Intersection of diaganol
+  // Zoom scale calculation
+
+};
+
+var moveHandler = function (evt) {
+  var movingObject = evt.target;
+  console.groupCollapsed(movingObject.get('left'), movingObject.get('top'));
+  console.log(movingObject)
+  console.groupEnd()
+  // TODO: Is this even necessary?
+};
+
+var mouseDown = function (evt) {
+  var movingObject = evt.target;
+  if (!movingObject) {
+    console.groupCollapsed(`clicked outside any crop at ${evt.e.offsetX}, ${evt.e.offsetY}`);
+    console.log(evt)
+    console.groupEnd()
+    canvasClick(evt.e)
+    return
+  }
+  console.groupCollapsed(movingObject.get('left'), movingObject.get('top'));
+  console.log(movingObject)
+  console.groupEnd()
+};
+
+_canvas.on({
+  'object:moving' : moveHandler,
+  'object:modified' : modifiedHandler,
+  'mouse:down': mouseDown
+});
+
+
+//#endregion
+
 
 //#region WebM helper methods
 function recordingLength() {

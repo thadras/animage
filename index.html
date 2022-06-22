@@ -11,16 +11,24 @@
   <script src="gif.js"></script>
   <script src="gif.worker.js"></script>
 </head>
+
 <body>
   <div class="wrapper">
     <header id="header"></header>
     <nav class="items">
       <div id="waypoints" class="column"></div>
     </nav>
-    <div class="items contents" id="target" style="position: relative">
-      <canvas id="canvas" class="canvas-wrap"></canvas>
+    <div class="column items">
+      <div class="contents" id="target" style="position: relative">
+        <canvas id="canvas" class="canvas-wrap"></canvas>
+      </div>
+      <div class="fabric-canvas">
+        <canvas id="fabric-canvas"></canvas>
+      </div>
     </div>
-    <aside id="side" class="items column"></aside>
+    <aside class="items column">
+      <div id="side"></div>
+    </aside>
     <footer id="controls" class="spacer"></footer>
   </div>
   <script src="bundle.js"></script>

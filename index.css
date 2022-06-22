@@ -18,6 +18,10 @@ input[class="text-input"] {
     position: relative;
 }
 
+#canvas-fabric {
+    position: relative;
+}
+
 .wrapper {
     display: grid;
     grid-template-columns: 1fr 5fr 2fr;
@@ -38,7 +42,6 @@ footer {
 }
 
 .wrapper * {
-    background: lightgray;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -52,6 +55,7 @@ footer {
 
 .items {
     display: flex;
+    background: lightgray;
 }
 
 button {
