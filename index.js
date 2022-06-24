@@ -51,7 +51,7 @@ window.addEventListener('resize', bodyResize)
 var drawRectCrop = (zoom, center, color) => {
   var centerX = imgDeminsions.width * center[0];
   var centerY = imgDeminsions.height * center[1];
-  var rect = rectCrop(zoom, center)(canvasDeminsions, imgDeminsions);
+  var rect = rectCrop(zoom, center)(kbCanvasDeminsions, imgDeminsions);
   imgContext.beginPath();
   imgContext.strokeStyle = color;
   imgContext.beginPath();
@@ -161,7 +161,7 @@ function dumpKBData() {
   console.groupCollapsed('CZ Klass objects')
   cropZones.forEach(obj => console.log(obj))
   console.groupEnd()
-  console.log(canvasDeminsions)
+  console.log(kbCanvasDeminsions)
   console.groupEnd();
   dispalyWaypoints();
 }
@@ -272,7 +272,7 @@ function inputKBChanged(ev, key) {
   const emitter = document.getElementById(key)
   const mapper = key.split('_')
   try {
-    canvasDeminsions[mapper[1]] = Number.parseInt(emitter.value)
+    kbCanvasDeminsions[mapper[1]] = Number.parseInt(emitter.value)
     side.innerHTML = ""
     doImageMapping(exampleImageUrl)
   }
@@ -321,16 +321,16 @@ const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
 const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS']
 // KB Center Point & Zoom levels for animation freeze-frame 
 const centerPoints = [
-  [0.15, 0.38],
-  [0.8, 0.0],
-  [0.54, 0.47],
-  [0.81, 0.48],
+  [0.45, 0.32],
+  [0.85, 0.2],
+  [0.80, 0.51],
+  [0.50, 0.77],
 ];
 const zoom = [
   0.4,
   0.3,
-  0.1,
-  0.2,
+  0.5,
+  0.3,
 ];
 // Frame transition easing  TODO: WTF are these doing?
 const easings = [
@@ -370,19 +370,19 @@ const cropZones = [];
 let continueLoop = true;
 //#endregion KB points
 
-// describe our loop example
-let exampleImageUrl = "download.jpg" // "http://i.imgur.com/Uw2EQEk.jpg"
-var canvasDeminsions = { width: 400, height: 400 }
+// Image used in a loop Ken Burns example an image animation
+let exampleImageUrl = "tree.jfif"
+var kbCanvasDeminsions = { width: 400, height: 400 }
 var canvas;  // Ken Burns canvas for rendering
 
 const createKBCanvas = () => {
   // Canvas2D example
   var canvas2d = document.createElement("canvas");
   canvas2d.id = "animCanvas"
-  canvas2d.style.width = `${canvasDeminsions.width}px`
-  canvas2d.style.height = `${canvasDeminsions.height}px`
-  canvas2d.width = canvasDeminsions.width
-  canvas2d.height = canvasDeminsions.height
+  canvas2d.style.width = `${kbCanvasDeminsions.width}px`
+  canvas2d.style.height = `${kbCanvasDeminsions.height}px`
+  canvas2d.width = kbCanvasDeminsions.width
+  canvas2d.height = kbCanvasDeminsions.height
   return canvas2d
 }
 
@@ -481,8 +481,8 @@ dispalyWaypoints()
 // UI redering for KB image deminsions
 function imageDimensionsInputs() {
   const div = document.createElement("div")
-  const uiKBWInput = renderUi.input('Width', canvasDeminsions.width, 'width', inputKBChanged);
-  const uiKBHInput = renderUi.input('Height', canvasDeminsions.height, 'height', inputKBChanged);
+  const uiKBWInput = renderUi.input('Width', kbCanvasDeminsions.width, 'width', inputKBChanged);
+  const uiKBHInput = renderUi.input('Height', kbCanvasDeminsions.height, 'height', inputKBChanged);
   div.style.padding = '16px'
   div.appendChild(uiKBWInput)
   div.appendChild(uiKBHInput)
@@ -493,8 +493,6 @@ function imageDimensionsInputs() {
 //#region Fabric helper methods
 imageToggle(1)  // Hide ordinary canvas till ready to replace it with fabric canvas
 var _canvas =  new fabric.Canvas('fabric-canvas', {
-  width: 500,
-  height: 500,
   containerClass: 'fabric-canvas',
   enableRetinaScaling: false,
   interactive: true,
@@ -502,47 +500,72 @@ var _canvas =  new fabric.Canvas('fabric-canvas', {
   controlsAboveOverlay:true,
   centeredScaling:true,
   allowTouchScrolling: true,
-  selectionLineWidth: 42,
 });
-var fab = document.getElementById("fabric-canvas")
-fab.addEventListener('click', fabclick);
-function fabclick(ev){
-  console.log(ev)
-  _canvas.add(new fabric.Circle({
-    radius: 10, fill: 'green', left: ev.offsetX, top: ev.offsetY
-    // radius: 20, fill: 'green', left: 100, top: 100
-  }));
-}
 
 //handler for done modifying objects on canvas
 var modifiedHandler = function (evt) {
   var modifiedObject = evt.target;
-  console.groupCollapsed(`modified L${modifiedObject.get('left')}, T${ modifiedObject.get('top')},  key: ${modifiedObject.ownMatrixCache.key}`);
-  console.log(modifiedObject)
-  // find selected object, update centerpoint
+  if (!modifiedObject) { return }  // Unlikely, but CYA 🤯
+  if ( modifiedObject.getScaledWidth() - modifiedObject.width >= 1
+      || modifiedObject.getScaledHeight() - modifiedObject.height  >= 1 ) {
+    console.log('skip recentering on a scaled event')
+    return
+  }
+  // find selected object & update centerpoint iff not scaled (event-chaining)
   const index = findCropZone(modifiedObject.ownMatrixCache.key)
   if (index < 0) {
     console.error(`Could not locate modified object ${modifiedObject.ownMatrixCache.key}`)
+    return
   }
+  console.groupCollapsed(`modified L${modifiedObject.get('left')}, T${ modifiedObject.get('top')}, key: ${modifiedObject.ownMatrixCache.key}`);
+  console.log(modifiedObject)
   // Intersection of diaganol
-  const xCenter = modifiedObject.left + ( modifiedObject.width ) / 2
-  const yCenter = modifiedObject.top + ( modifiedObject.height ) / 2
-  console.log(`centerpoint ${xCenter/imgDeminsions.width}, ${yCenter/imgDeminsions.height}`)
-  centerPoints[index][0] = (xCenter/imgDeminsions.width);
-  centerPoints[index][1] = (yCenter/imgDeminsions.height);
+  const xCenter = modifiedObject.left + modifiedObject.width / 2
+  const yCenter = modifiedObject.top + modifiedObject.height / 2
+  const oldY = centerPoints[index][1]
+  const oldX = centerPoints[index][0]
+  centerPoints[index][0] = xCenter/imgDeminsions.width;
+  centerPoints[index][1] = yCenter/imgDeminsions.height;
 
-  // TODO:  Zoom scale calculation
   doImageMapping(exampleImageUrl)
+  dispalyWaypoints()
   console.groupEnd()
+  console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter/imgDeminsions.width}, ${yCenter/imgDeminsions.height}`)
 
 };
 
+var scaledHandler = function (evt) {
+  var modifiedObject = evt.target;
+  if (!modifiedObject) { return }  // Unlikely, but CYA 🤯
+  // find selected object, update zoom
+  const index = findCropZone(modifiedObject.ownMatrixCache.key)
+  if (index < 0) {
+    console.error(`Could not locate modified object ${modifiedObject.ownMatrixCache.key}`)
+    return
+  }
+  console.groupCollapsed(`scaled w${modifiedObject.getScaledWidth()}, h${ modifiedObject.getScaledHeight()}, key: ${modifiedObject.ownMatrixCache.key}`);
+  console.log(modifiedObject)
+  // Zoom scale calculation and manage out-of-scale changes
+  const scale = modifiedObject.getScaledWidth() / modifiedObject.getScaledHeight()
+  const scaleImg = imgDeminsions.width / imgDeminsions.height
+  const scaleKB = kbCanvasDeminsions.width / kbCanvasDeminsions.height
+  // ATM assume the scale is mainatined
+  const newZoom = modifiedObject.getScaledWidth() / imgDeminsions.height
+  const oldZoom = zoom[index]
+  zoom[index] = newZoom
+  doImageMapping(exampleImageUrl)
+  dispalyWaypoints()
+  console.groupEnd()
+  // TODO: Handle X or Y scaling that !== kbCanvasDeminsions
+  console.log(`zoom n${newZoom} o${oldZoom} scales mod: ${scale} img: ${scaleImg} kb: ${scaleKB}`)
+}
+
+// TODO: Is this even necessary?
 var moveHandler = function (evt) {
   var movingObject = evt.target;
   console.groupCollapsed(`move L${movingObject.get('left')}, T${ movingObject.get('top')}`);
   console.log(movingObject)
   console.groupEnd()
-  // TODO: Is this even necessary?
 };
 
 var mouseDown = function (evt) {
@@ -565,8 +588,8 @@ var mouseDown = function (evt) {
     }
     console.groupEnd()
   }
-  console.groupCollapsed(`🤦‍♂️Nothing to do with this mouse down L${movingObject.get('left')}, T${ movingObject.get('top')}`);
-  console.log(movingObject)
+  console.groupCollapsed('🖼Fabric object manipulation, Nothing to do with this mouse down');
+  console.log(evt)
   console.groupEnd()
 };
 
@@ -605,6 +628,7 @@ function touchLP(ev) {
 _canvas.on({
   // 'object:moving' : moveHandler,  // Noisy but useful for WIP debuggign
   'object:modified' : modifiedHandler,
+  'object:scaled' : scaledHandler,
   'mouse:down': mouseDown,
   'touch:longpress': touchLP,
   'touch:gesture': touchG,
