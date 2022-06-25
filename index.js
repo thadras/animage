@@ -1,5 +1,6 @@
 import KenBurnsCanvas2D from "kenburns/lib/Canvas2D";
 import bezierEasing from "bezier-easing";
+import { fabric } from "fabric";
 import rectCrop from "rect-crop";
 import renderUi from "./ui"
 
@@ -31,10 +32,26 @@ function simpleArraySum(ar) {
   return sum;
 }
 
+const randomHundreth = () => Math.floor(10 + Math.random() * 90) / 100
+
+// TODO: WIP to limit rendering to viewport size by adding image scaling
+const bodyResize = (ev) => {
+  const {innerWidth, innerHeight } = ev.currentTarget
+  console.groupCollapsed(`Body resized to ${innerWidth}, ${innerHeight } `)
+  console.log(ev)
+  const body = document.getElementById("viewport")
+
+  document.body.style.maxWidth = `${innerWidth}px`
+  document.body.style.maxHeight = `${innerHeight}px`
+  console.log(body)
+  console.groupEnd()
+}
+window.addEventListener('resize', bodyResize)
+
 var drawRectCrop = (zoom, center, color) => {
   var centerX = imgDeminsions.width * center[0];
   var centerY = imgDeminsions.height * center[1];
-  var rect = rectCrop(zoom, center)(canvasDeminsions, imgDeminsions);
+  var rect = rectCrop(zoom, center)(kbCanvasDeminsions, imgDeminsions);
   imgContext.beginPath();
   imgContext.strokeStyle = color;
   imgContext.beginPath();
@@ -60,7 +77,27 @@ var drawRectCrop = (zoom, center, color) => {
   else if (y + h > imgDeminsions.height) {
     y = imgDeminsions.height - h
   }
+  // Original canvas
   imgContext.strokeRect(x, y, w, h)
+  // Fabric canvas
+  var cz = new fabric.Rect({
+    originX: 'left',
+    originY: 'top',
+    left : x,
+    top : y,
+    width : w,
+    height : h,
+    stroke: color,
+    strokeWidth: '5',
+    fill : 'transparent',
+    // allows resizing without maintaining scale, & snaps to width at KB scale
+    lockUniScaling: true,
+    lockRotation: true,
+  });
+  cropZones.push(cz)
+  _canvas.add(cz)
+  _canvas.renderAll()
+
 }
 
 function displayArray(data) {
@@ -71,6 +108,7 @@ function displayArray(data) {
   console.log(msg);
 }
 
+// Clear all Ken Burn waypoints and redraw image
 function clearKBData() {
   centerPoints.splice(0, centerPoints.length);
   zoom.splice(0, zoom.length);
@@ -78,8 +116,7 @@ function clearKBData() {
   delays.splice(0, delays.length);
   crops.splice(0, crops.length);
   easings.splice(0, easings.length);
-  // cropzones.splice(0, cropzones.length);
-  continueLoop = false;
+  resetCropZones();
   canvas.remove()
   dumpKBData();
   console.groupCollapsed('drawing the clean slate')
@@ -90,19 +127,40 @@ function clearKBData() {
   imageToggle(null)
 }
 
+// Free fabric canvas objects and empty array
+function resetCropZones() {
+  cropZones.forEach(obj => _canvas.remove(obj))
+  cropZones.splice(0, cropZones.length);
+}
+
+// Find a fabric canvas object by key in the array
+function findCropZone(key) {
+  let found = -1
+  cropZones.forEach((obj, i) => {
+      if (key == obj.ownMatrixCache.key) {
+        found = i;
+      }
+  })
+  return found;
+}
+
+// Dump some Ken Burns data about the waypoints
 function dumpKBData() {
   console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, canvasDeminsions sum ${recordingLength()}`)
   displayArray(centerPoints);
   displayArray(zoom);
   displayArray(durations);
   displayArray(delays);
-  // displayArray(cropzones);
-  console.log(canvasDeminsions)
+  cropZones.forEach(obj => console.log(obj.ownMatrixCache.key))
+  console.groupCollapsed('CZ Klass objects')
+  cropZones.forEach(obj => console.log(obj))
+  console.groupEnd()
+  console.log(kbCanvasDeminsions)
   console.groupEnd();
   dispalyWaypoints();
-
 }
 
+// Update nav bar to include the Ken Burns waypoint UI controls
 function dispalyWaypoints() {
   waypoints.innerHTML = ""
   for (var i = 0; i < centerPoints.length; i++) {
@@ -159,16 +217,7 @@ function dispalyWaypoints() {
   waypoints.appendChild(rec)
 }
 
-function imageDimensionsInputs() {
-  const div = document.createElement("div")
-  const uiKBWInput = renderUi.input('Width', canvasDeminsions.width, 'width', inputKBChanged);
-  const uiKBHInput = renderUi.input('Height', canvasDeminsions.height, 'height', inputKBChanged);
-  div.style.padding = '16px'
-  div.appendChild(uiKBWInput)
-  div.appendChild(uiKBHInput)
-  return div
-}
-
+// UI Handlers
 function inputChanged(ev, key) {
   const emitter = document.getElementById(key)
   const mapper = key.split('_')
@@ -217,7 +266,7 @@ function inputKBChanged(ev, key) {
   const emitter = document.getElementById(key)
   const mapper = key.split('_')
   try {
-    canvasDeminsions[mapper[1]] = Number.parseInt(emitter.value)
+    kbCanvasDeminsions[mapper[1]] = Number.parseInt(emitter.value)
     side.innerHTML = ""
     doImageMapping(exampleImageUrl)
   }
@@ -225,10 +274,12 @@ function inputKBChanged(ev, key) {
     console.error(e)
   }
 }
+
+// Kludge to minimize raw image, but leaves the Fabric Canvas in-view for WIP dev
 function imageToggle(ev) {
   const div = document.getElementById("target")
   var style = div.style
-  console.log(style)
+
   if (style.display == "none" || !ev) {
     // Always show image when loading image or clearing KB data
     style.display = "flex"
@@ -253,26 +304,28 @@ const exampleAnimation =
         )
           .then(() => delay(delays[i])) // wait a bit
       ), Promise.resolve()) // start with a resolved promise
-        .then(() => continueLoop && exampleAnimation(kenBurns)(source)); // loop again
+        .then(() => exampleAnimation(kenBurns)(source))
+        .catch(() => console.log('Swallow error from clearing data mid-exe')); // loop again
 //#endregion
 
 //#region  Animation constants and datat structures
 const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
+// Labels for UI Sliders & Inputs contols
 const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS']
 // KB Center Point & Zoom levels for animation freeze-frame 
 const centerPoints = [
-  [0.15, 0.38],
-  [0.8, 0.0],
-  [0.54, 0.47],
-  [0.81, 0.48],
+  [0.45, 0.32],
+  [0.85, 0.2],
+  [0.80, 0.51],
+  [0.50, 0.77],
 ];
 const zoom = [
   0.4,
   0.3,
-  0.1,
-  0.2,
+  0.5,
+  0.3,
 ];
-// Frame transition easing
+// Frame transition easing  TODO: What are these doing, and should they have controls?
 const easings = [
   bezierEasing(0.6, 0, 1, 1),
   bezierEasing(0, 0, 1, 1),
@@ -304,26 +357,27 @@ const crops = [
   rectCrop(zoom[3], centerPoints[3]),
   rectCrop.largest,
 ];
-let continueLoop = true;
-
+// Fabric objects to be filled by doImageMapping calling drawRectCrop
+const cropZones = [];
 //#endregion KB points
 
-// describe our loop example
-let exampleImageUrl = "download.jpg" // "http://i.imgur.com/Uw2EQEk.jpg"
-var canvasDeminsions = { width: 400, height: 400 }
+// Image used in a loop Ken Burns example an image animation
+let exampleImageUrl = "tree.jfif"
+var kbCanvasDeminsions = { width: 400, height: 400 }
 var canvas;  // Ken Burns canvas for rendering
 
 const createKBCanvas = () => {
   // Canvas2D example
   var canvas2d = document.createElement("canvas");
   canvas2d.id = "animCanvas"
-  canvas2d.style.width = `${canvasDeminsions.width}px`
-  canvas2d.style.height = `${canvasDeminsions.height}px`
-  canvas2d.width = canvasDeminsions.width
-  canvas2d.height = canvasDeminsions.height
+  canvas2d.style.width = `${kbCanvasDeminsions.width}px`
+  canvas2d.style.height = `${kbCanvasDeminsions.height}px`
+  canvas2d.width = kbCanvasDeminsions.width
+  canvas2d.height = kbCanvasDeminsions.height
   return canvas2d
 }
 
+// Main functional of drawing image & rendering Ken Burn transition between waypoints
 function doImageMapping(imageUrl) {
   exampleImageUrl = imageUrl;
   if (canvas) {
@@ -336,7 +390,6 @@ function doImageMapping(imageUrl) {
   side.appendChild(dimInputs)
   side.appendChild(canvas);
   var kenBurnsCanvas2d = new KenBurnsCanvas2D(ctx);
-  console.log('starting KB map')
   loadCrossOriginImage(imageUrl, true)
     .then(exampleAnimation(kenBurnsCanvas2d))
     .catch(e => console.error("Canvas2D implementation failure:", e));
@@ -344,6 +397,11 @@ function doImageMapping(imageUrl) {
   // Load full image with on-click handler
   loadCrossOriginImage(imageUrl).then(img => {
     console.log(`loaded the image with w: ${img.width} by h: ${img.height}`);
+    var f_img = new fabric.Image(img);
+    _canvas.setWidth(img.width)
+    _canvas.setHeight(img.height)
+    _canvas.setBackgroundImage(f_img);
+
     imgDeminsions.width = img.width;
     imgDeminsions.height = img.height;
     imgCanvas.width = img.width
@@ -351,18 +409,20 @@ function doImageMapping(imageUrl) {
     imgContext.drawImage(img, 0, 0);
     imgCanvas.addEventListener('click', canvasClick, false);
 
+    resetCropZones()
     for (var i = 0; i < zoom.length; i++) {
       drawRectCrop(zoom[i], centerPoints[i], color[i % color.length]);
     }
   });
 }
 
+// The raw image that will have a Ken Burns affect applied
 var imgDeminsions = { width: 0, height: 0 };
 var imgCanvas = document.getElementById("canvas");
 var imgContext = imgCanvas.getContext('2d');
 let image = new Image();
 
-const randomHundreth = () => Math.floor(10 + Math.random() * 90) / 100
+// UI interaction of adding a waypoint, with random initialization, and redrawing
 var canvasClick = (ev) => {
   var cX = ev.offsetX / imgCanvas.width
   var cY = ev.offsetY / imgCanvas.height
@@ -373,19 +433,15 @@ var canvasClick = (ev) => {
   easings.push(easings[Math.floor(Math.random() * wayPoints)]);
   // Duration of easing between frames
   durations.push((randomHundreth() * 10000).toFixed(2))
-  // Delay on freeze-frame
+  // Delay to freeze-frame
   delays.push((randomHundreth() * 1000).toFixed(2))
   crops.push(rectCrop(zoom[wayPoints], centerPoints[wayPoints]));
-  continueLoop = true;
-  // const cz = createCropZone(wayPoints)
-  // _canvas.add(cz)
-  // console.log(cz)
-  // cropzones.push(cz)
   dumpKBData();
   doImageMapping(exampleImageUrl);
 }
+
+// Handler for Select File to re-init key data
 const newImage = (image) => {
-  // imageData = image;
   exampleImageUrl = image
   clearKBData()
   imageToggle(null)
@@ -411,6 +467,157 @@ buttonRow.appendChild(renderUi.button('Restart Loop', () => doImageMapping(examp
 buttonRow.appendChild(renderUi.button('WebM Recording', startRecording))
 buttonRow.appendChild(renderUi.button('GIF Recording', startGif))
 dispalyWaypoints()
+
+// UI redering for KB image deminsions
+function imageDimensionsInputs() {
+  const div = document.createElement("div")
+  const uiKBWInput = renderUi.input('Width', kbCanvasDeminsions.width, 'width', inputKBChanged);
+  const uiKBHInput = renderUi.input('Height', kbCanvasDeminsions.height, 'height', inputKBChanged);
+  div.style.padding = '16px'
+  div.appendChild(uiKBWInput)
+  div.appendChild(uiKBHInput)
+  return div
+}
+//#endregion
+
+//#region Fabric helper methods
+imageToggle(1)  // Hide ordinary canvas till ready to replace it with fabric canvas
+var _canvas =  new fabric.Canvas('fabric-canvas', {
+  containerClass: 'fabric-canvas',
+  enableRetinaScaling: false,
+  interactive: true,
+  selection : false,
+  controlsAboveOverlay:true,
+  centeredScaling:true,
+  allowTouchScrolling: true,
+});
+
+//handler for done modifying objects on canvas
+var modifiedHandler = function (evt) {
+  var modifiedObject = evt.target;
+  if (!modifiedObject) { return }  // Unlikely, but CYA 🤯
+  if ( modifiedObject.getScaledWidth() - modifiedObject.width >= 1
+      || modifiedObject.getScaledHeight() - modifiedObject.height  >= 1 ) {
+    console.log('skip recentering on a scaled event')
+    return
+  }
+  // find selected object & update centerpoint iff not scaled (event-chaining)
+  const index = findCropZone(modifiedObject.ownMatrixCache.key)
+  if (index < 0) {
+    console.error(`Could not locate modified object ${modifiedObject.ownMatrixCache.key}`)
+    return
+  }
+  console.groupCollapsed(`modified L${modifiedObject.get('left')}, T${ modifiedObject.get('top')}, key: ${modifiedObject.ownMatrixCache.key}`);
+  console.log(modifiedObject)
+  // Intersection of diaganol
+  const xCenter = modifiedObject.left + modifiedObject.width / 2
+  const yCenter = modifiedObject.top + modifiedObject.height / 2
+  const oldY = centerPoints[index][1]
+  const oldX = centerPoints[index][0]
+  centerPoints[index][0] = xCenter/imgDeminsions.width;
+  centerPoints[index][1] = yCenter/imgDeminsions.height;
+
+  doImageMapping(exampleImageUrl)
+  dispalyWaypoints()
+  console.groupEnd()
+  console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter/imgDeminsions.width}, ${yCenter/imgDeminsions.height}`)
+
+};
+
+var scaledHandler = function (evt) {
+  var modifiedObject = evt.target;
+  if (!modifiedObject) { return }  // Unlikely, but CYA 🤯
+  // find selected object, update zoom
+  const index = findCropZone(modifiedObject.ownMatrixCache.key)
+  if (index < 0) {
+    console.error(`Could not locate modified object ${modifiedObject.ownMatrixCache.key}`)
+    return
+  }
+  console.groupCollapsed(`scaled w${modifiedObject.getScaledWidth()}, h${ modifiedObject.getScaledHeight()}, key: ${modifiedObject.ownMatrixCache.key}`);
+  console.log(modifiedObject)
+  // Zoom scale calculation and manage out-of-scale changes
+  const scale = modifiedObject.getScaledWidth() / modifiedObject.getScaledHeight()
+  const scaleImg = imgDeminsions.width / imgDeminsions.height
+  const scaleKB = kbCanvasDeminsions.width / kbCanvasDeminsions.height
+  // ATM assume the scale is mainatined
+  const newZoom = modifiedObject.getScaledWidth() / imgDeminsions.height
+  const oldZoom = zoom[index]
+  zoom[index] = newZoom
+  doImageMapping(exampleImageUrl)
+  dispalyWaypoints()
+  console.groupEnd()
+  // TODO: Handle X or Y scaling that !== kbCanvasDeminsions
+  console.log(`zoom n${newZoom} o${oldZoom} scales mod: ${scale} img: ${scaleImg} kb: ${scaleKB}`)
+}
+
+
+var mouseDown = function (evt) {
+  var movingObject = evt.target;
+  if (!movingObject) {
+    console.groupCollapsed(`clicked outside any crop at ${evt.e.offsetX}, ${evt.e.offsetY}`);
+    console.log(evt)
+    if (evt.e instanceof MouseEvent){
+      canvasClick(evt.e)
+    }
+    else if (evt.e instanceof TouchEvent) {
+      const mockE = {
+        offsetX: evt.pointer.x,
+        offsetY: evt.pointer.y,
+      }
+      canvasClick(mockE)
+    }
+    else {
+      console.error('🤷‍♂️What sort of event even got here then?')
+    }
+    console.groupEnd()
+  }
+  console.groupCollapsed('🖼Fabric object manipulation, Nothing to do with this mouse down');
+  console.log(evt)
+  console.groupEnd()
+};
+
+var info = document.getElementById('info');
+
+// TODO: WIP for fabric touch interaction and displaying info in view
+function touchG(ev) {
+  const msg = `G ${ev.pointer.x}, ${ev.pointer.y}`
+  var text = document.createTextNode(msg);
+  info.insertBefore(text, info.firstChild);
+  console.log(ev)
+}
+function touchD(ev) {
+  const msg = `D ${ev.pointer.x}, ${ev.pointer.y}`
+  var text = document.createTextNode(msg);
+  info.insertBefore(text, info.firstChild);
+  console.log(ev)
+}
+function touchO(ev) {
+  var text = document.createTextNode(' Orientation ');
+  info.insertBefore(text, info.firstChild);
+  console.log(ev)
+}
+function touchS(ev) {
+  var text = document.createTextNode(' Shaking ');
+  info.insertBefore(text, info.firstChild);
+  console.log(ev)
+}
+function touchLP(ev) {
+  const mesg = `LP ${ev.pointer.x}, ${ev.pointer.y}`
+  var text = document.createTextNode(mesg);
+  info.insertBefore(text, info.firstChild);
+  console.log(ev)
+}
+
+_canvas.on({
+  'object:modified' : modifiedHandler,
+  'object:scaled' : scaledHandler,
+  'mouse:down': mouseDown,
+  'touch:longpress': touchLP,
+  'touch:gesture': touchG,
+  'touch:drag': touchD,
+  'touch:orientation': touchO,
+  'touch:shake': touchS,
+});
 //#endregion
 
 //#region WebM helper methods
@@ -502,7 +709,7 @@ function startGif() {
       }
     } else {
       if (rendered === false) {
-          console.log(`Rendering Gif of ${numFrames} frames`);
+        console.log(`Rendering Gif of ${numFrames} frames`);
         gif.addFrame(canvas, {
           copy: true,
           delay: 50

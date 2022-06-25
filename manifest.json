@@ -1,0 +1,10 @@
+{
+  "name": "Animage Ken Burns Render",
+  "short_name": "AnImage",
+  "theme_color": "#fff",
+  "background_color": "#d3d3d3",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/"
+}

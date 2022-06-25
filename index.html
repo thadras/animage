@@ -5,25 +5,50 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta http-equiv="Cache-control" content="public">
   <title>Animage Ken Burns Render</title>
+  <link rel="manifest" href="/app.webmanifest">
   <link rel="stylesheet" href="/index.css">
   <!-- GIF.js code -->
   <script src="gif.js"></script>
   <script src="gif.worker.js"></script>
 </head>
+
 <body>
-  <div class="wrapper">
-    <header id="header"></header>
+  <div id="viewport" class="wrapper">
+    <header id="header" class="items"></header>
     <nav class="items">
       <div id="waypoints" class="column"></div>
     </nav>
-    <div class="items contents" id="target" style="position: relative">
-      <canvas id="canvas" class="canvas-wrap"></canvas>
+    <div class="column items">
+      <div class="contents" id="target" style="position: relative">
+        <canvas id="canvas" class="canvas-wrap"></canvas>
+      </div>
+      <div class="fabric-canvas">
+        <canvas id="fabric-canvas"></canvas>
+      </div>
     </div>
-    <aside id="side" class="items column"></aside>
-    <footer id="controls" class="spacer"></footer>
+    <aside class="items column">
+      <div class="column" id="info"></div>
+      <div class="column" id="side"></div>
+    </aside>
+    <footer id="controls" class="items spacer"></footer>
   </div>
+  <script>
+    // TODO: WIP for PWA usage in offline mode, seems to require HTTPS
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .catch(function(err) {
+          console.info('Service workers are not supported. ❌');
+      });
+      console.log('added service worker 😍')
+    } else {
+      console.log('No service worker 😭')
+    }
+  </script>
   <script src="bundle.js"></script>
+
+}
 </body>
 
 </html>
