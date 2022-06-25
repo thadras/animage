@@ -1,0 +1,29 @@
+name: Publish to GitHub Pages
+
+on:
+  push:
+    branches:
+      - display-way-points
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v1
+
+      - name: Install node_modules
+        uses: bahmutov/npm-install@v1
+
+      - name: Generate build
+        run: |
+          npm run build
+          mkdir dist
+          cp index.css index.html *js manifest.json tree.jfif dist/
+
+      - name: Deploy to GitHub Pages🚀
+        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        with:
+          dir: dist
+          branch: gh-pages
+          token: ${{ secrets.ACCESS_TOKEN }}

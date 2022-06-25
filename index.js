@@ -90,13 +90,8 @@ var drawRectCrop = (zoom, center, color) => {
     stroke: color,
     strokeWidth: '5',
     fill : 'transparent',
-    // allows resizing without maintaining scale, & snaps back to TL with scale
+    // allows resizing without maintaining scale, & snaps to width at KB scale
     lockUniScaling: true,
-    // TODO:  Any better option?
-    // lockScalingX: true,
-    // lockScalingY: true,
-    // lockMovementX: true,
-    // lockMovementY: true,
     lockRotation: true,
   });
   cropZones.push(cz)
@@ -122,7 +117,6 @@ function clearKBData() {
   crops.splice(0, crops.length);
   easings.splice(0, easings.length);
   resetCropZones();
-  continueLoop = false;
   canvas.remove()
   dumpKBData();
   console.groupCollapsed('drawing the clean slate')
@@ -310,8 +304,7 @@ const exampleAnimation =
         )
           .then(() => delay(delays[i])) // wait a bit
       ), Promise.resolve()) // start with a resolved promise
-        // TODO: do I even need this continueLoop variable now that there is a catch
-        .then(() => continueLoop && exampleAnimation(kenBurns)(source))
+        .then(() => exampleAnimation(kenBurns)(source))
         .catch(() => console.log('Swallow error from clearing data mid-exe')); // loop again
 //#endregion
 
@@ -332,7 +325,7 @@ const zoom = [
   0.5,
   0.3,
 ];
-// Frame transition easing  TODO: WTF are these doing?
+// Frame transition easing  TODO: What are these doing, and should they have controls?
 const easings = [
   bezierEasing(0.6, 0, 1, 1),
   bezierEasing(0, 0, 1, 1),
@@ -366,8 +359,6 @@ const crops = [
 ];
 // Fabric objects to be filled by doImageMapping calling drawRectCrop
 const cropZones = [];
-
-let continueLoop = true;
 //#endregion KB points
 
 // Image used in a loop Ken Burns example an image animation
@@ -445,7 +436,6 @@ var canvasClick = (ev) => {
   // Delay to freeze-frame
   delays.push((randomHundreth() * 1000).toFixed(2))
   crops.push(rectCrop(zoom[wayPoints], centerPoints[wayPoints]));
-  continueLoop = true;
   dumpKBData();
   doImageMapping(exampleImageUrl);
 }
@@ -560,13 +550,6 @@ var scaledHandler = function (evt) {
   console.log(`zoom n${newZoom} o${oldZoom} scales mod: ${scale} img: ${scaleImg} kb: ${scaleKB}`)
 }
 
-// TODO: Is this even necessary?
-var moveHandler = function (evt) {
-  var movingObject = evt.target;
-  console.groupCollapsed(`move L${movingObject.get('left')}, T${ movingObject.get('top')}`);
-  console.log(movingObject)
-  console.groupEnd()
-};
 
 var mouseDown = function (evt) {
   var movingObject = evt.target;
@@ -595,7 +578,7 @@ var mouseDown = function (evt) {
 
 var info = document.getElementById('info');
 
-// TODO: WIP for touch interaction and displaying info in view
+// TODO: WIP for fabric touch interaction and displaying info in view
 function touchG(ev) {
   const msg = `G ${ev.pointer.x}, ${ev.pointer.y}`
   var text = document.createTextNode(msg);
@@ -626,7 +609,6 @@ function touchLP(ev) {
 }
 
 _canvas.on({
-  // 'object:moving' : moveHandler,  // Noisy but useful for WIP debuggign
   'object:modified' : modifiedHandler,
   'object:scaled' : scaledHandler,
   'mouse:down': mouseDown,
@@ -637,7 +619,6 @@ _canvas.on({
   'touch:shake': touchS,
 });
 //#endregion
-
 
 //#region WebM helper methods
 function recordingLength() {
@@ -728,7 +709,7 @@ function startGif() {
       }
     } else {
       if (rendered === false) {
-          console.log(`Rendering Gif of ${numFrames} frames`);
+        console.log(`Rendering Gif of ${numFrames} frames`);
         gif.addFrame(canvas, {
           copy: true,
           delay: 50
