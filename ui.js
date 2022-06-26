@@ -93,7 +93,7 @@ const doFileRead = (reader, loaded) => {
   let imgDeminsionsX = vw;
   let imgDeminsionsY = vh;
   const imgCanvas = document.getElementById(
-    'canvas'
+    'fabric-canvas'
   );
   const ctx = imgCanvas.getContext('2d');
   var scale = 1;

@@ -7,30 +7,38 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta http-equiv="Cache-control" content="public">
   <title>Animage Ken Burns Render</title>
-  <link rel="manifest" href="/app.webmanifest">
-  <link rel="stylesheet" href="/index.css">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="PWA Workshop" />
+  <meta name="apple-mobile-web-app-title" content="PWA Workshop" />
+  <meta name="msapplication-starturl" content="index.html" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, shrink-to-fit=no"
+  />
+  <link rel="stylesheet" href="index.css">
   <!-- GIF.js code -->
   <script src="gif.js"></script>
   <script src="gif.worker.js"></script>
 </head>
 
-<body>
+<body style="background: lightgray">
   <div id="viewport" class="wrapper">
     <header id="header" class="items"></header>
     <nav class="items">
       <div id="waypoints" class="column"></div>
     </nav>
-    <div class="column items">
-      <div class="contents" id="target" style="position: relative">
-        <canvas id="canvas" class="canvas-wrap"></canvas>
-      </div>
-      <div class="fabric-canvas">
+    <div class="column items" id="target" style="position: relative">
+      <div class="fabric-canvas" >
         <canvas id="fabric-canvas"></canvas>
       </div>
     </div>
     <aside class="items column">
-      <div class="column" id="info"></div>
       <div class="column" id="side"></div>
+      <div class="column" id="sideGif"></div>
+      <div class="column" id="sideWebM"></div>
+      <div class="column" id="info"></div>
     </aside>
     <footer id="controls" class="items spacer"></footer>
   </div>
