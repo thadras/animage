@@ -246,11 +246,11 @@ function inputChanged(ev, key) {
       break;
     case labels[3]:
     case labels[8]:
-      durations[idx] = emitter.value;
+      durations[idx] = mapper[0] == labels[3] ? emitter.value * 100 : emitter.value
       break;
     case labels[4]:
     case labels[9]:
-      delays[idx] = emitter.value;
+      delays[idx] = mapper[0] == labels[4] ? emitter.value * 100 : emitter.value
       break;
     default:
       return
