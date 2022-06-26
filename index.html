@@ -45,7 +45,7 @@
   <script>
     // TODO: WIP for PWA usage in offline mode, seems to require HTTPS
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
+      navigator.serviceWorker.register('service-worker.js')
         .catch(function(err) {
           console.info('Service workers are not supported. ❌');
       });
@@ -55,8 +55,5 @@
     }
   </script>
   <script src="bundle.js"></script>
-
-}
 </body>
-
 </html>
