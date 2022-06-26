@@ -5,8 +5,8 @@
   "background_color": "#d3d3d3",
   "display": "standalone",
   "orientation": "portrait",
-  "scope": "/animage",
-  "start_url": "/animage/index.html",
+  "scope": "/",
+  "start_url": "/",
   "icons": [
     {
       "src": "tree-192.png",
