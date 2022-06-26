@@ -50,7 +50,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  console.log('fetch request : ' + event.request.url)
   if (event.request.method === 'GET') {
     let url = event.request.url.indexOf(self.location.origin) !== -1 ?
       event.request.url.split(`${self.location.origin}/`)[1] :
@@ -72,14 +71,12 @@ self.addEventListener('fetch', event => {
             return cache.match(url)
               .then(response => {
                 if (response) {
-                  console.log('fetched from cache')
                   return response;
                 }
                 throw Error('There is not response for such request', url);
               });
           })
           .catch(error => {
-            console.log('fetching from network')
             return fetch(event.request);
           })
       );
