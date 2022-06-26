@@ -117,6 +117,7 @@ function clearKBData() {
   crops.splice(0, crops.length);
   easings.splice(0, easings.length);
   resetCropZones();
+  continueLoop = false;
   canvas.remove()
   dumpKBData();
   console.groupCollapsed('drawing the clean slate')
@@ -304,7 +305,7 @@ const exampleAnimation =
         )
           .then(() => delay(delays[i])) // wait a bit
       ), Promise.resolve()) // start with a resolved promise
-        .then(() => exampleAnimation(kenBurns)(source))
+        .then(() => continueLoop && exampleAnimation(kenBurns)(source))
         .catch(() => console.log('Swallow error from clearing data mid-exe')); // loop again
 //#endregion
 
@@ -359,6 +360,7 @@ const crops = [
 ];
 // Fabric objects to be filled by doImageMapping calling drawRectCrop
 const cropZones = [];
+let continueLoop = true;
 //#endregion KB points
 
 // Image used in a loop Ken Burns example an image animation
@@ -418,7 +420,7 @@ function doImageMapping(imageUrl) {
 
 // The raw image that will have a Ken Burns affect applied
 var imgDeminsions = { width: 0, height: 0 };
-var imgCanvas = document.getElementById("canvas");
+var imgCanvas = document.getElementById("fabric-canvas");
 var imgContext = imgCanvas.getContext('2d');
 let image = new Image();
 
@@ -436,6 +438,7 @@ var canvasClick = (ev) => {
   // Delay to freeze-frame
   delays.push((randomHundreth() * 1000).toFixed(2))
   crops.push(rectCrop(zoom[wayPoints], centerPoints[wayPoints]));
+  continueLoop = true;
   dumpKBData();
   doImageMapping(exampleImageUrl);
 }
@@ -451,7 +454,8 @@ const newImage = (image) => {
 //#region append elements to the DOM
 const waypoints = document.getElementById("waypoints");
 const header = document.getElementById("header");
-const container = document.getElementById("side");
+const gifContainer = document.getElementById("sideGif");
+const vidContainer = document.getElementById("sideWebM");
 const controls = document.getElementById("controls");
 const buttonRow = document.createElement("div");
 
@@ -481,7 +485,7 @@ function imageDimensionsInputs() {
 //#endregion
 
 //#region Fabric helper methods
-imageToggle(1)  // Hide ordinary canvas till ready to replace it with fabric canvas
+// imageToggle(1)  // Hide ordinary canvas till ready to replace it with fabric canvas
 var _canvas =  new fabric.Canvas('fabric-canvas', {
   containerClass: 'fabric-canvas',
   enableRetinaScaling: false,
@@ -652,13 +656,16 @@ function exportVid(blob) {
   const vid = document.createElement('video');
   vid.src = URL.createObjectURL(blob);
   vid.controls = true;
+  vidDiv.className = "column"
+  vidDiv.appendChild(title("WebM"))
   vidDiv.appendChild(vid);
   const a = document.createElement('a');
   a.download = 'myvid.webm';
   a.href = vid.src;
-  a.textContent = '⏬ 📽 💾';
+  a.textContent = '⏬ WebM 💾';
   controls.appendChild(a);
-  container.appendChild(vidDiv);
+  vidContainer.replaceChildren(vidDiv)
+  // vidContainer.appendChild(vidDiv);
 }
 
 function anim() {
@@ -729,7 +736,12 @@ function startGif() {
     console.log(`Gif rendered of ~${recordingLength()}s`);
     div.appendChild(title("GIF"))
     div.appendChild(img)
-    container.appendChild(div)
+    const a = document.createElement('a');
+    a.download = 'kenburns.gif';
+    a.href = img.src;
+    a.textContent = '⏬ Gif 💾';
+    controls.appendChild(a);
+    gifContainer.replaceChildren(div)
     rendered = true;
     requestAnimationFrame(loop);
   });
