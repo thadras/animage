@@ -20,6 +20,7 @@ jobs:
           npm run build
           mkdir dist
           cp index.css index.html *js manifest.json tree.jfif dist/
+          ls -l dist
 
       - name: Deploy to GitHub Pages🚀
         uses: JamesIves/github-pages-deploy-action@v4.3.3

@@ -6,5 +6,15 @@
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
-  "start_url": "/"
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "icons/192.png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/512.png",
+      "sizes": "512x512"
+    }
+  ]
 }
