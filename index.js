@@ -3,6 +3,7 @@ import bezierEasing from "bezier-easing";
 import { fabric } from "fabric";
 import rectCrop from "rect-crop";
 import renderUi from "./ui"
+import quickView from "./quickview"
 
 //#region Utility methods
 // Utility to load an Image by url, which works data-urls
@@ -34,24 +35,10 @@ function simpleArraySum(ar) {
 
 const randomHundreth = () => Math.floor(10 + Math.random() * 90) / 100
 
-// TODO: WIP to limit rendering to viewport size by adding image scaling
-const bodyResize = (ev) => {
-  const {innerWidth, innerHeight } = ev.currentTarget
-  console.groupCollapsed(`Body resized to ${innerWidth}, ${innerHeight } `)
-  console.log(ev)
-  const body = document.getElementById("viewport")
-
-  document.body.style.maxWidth = `${innerWidth}px`
-  document.body.style.maxHeight = `${innerHeight}px`
-  console.log(body)
-  console.groupEnd()
-}
-window.addEventListener('resize', bodyResize)
-
 var drawRectCrop = (zoom, center, color) => {
-  var centerX = imgDeminsions.width * center[0];
-  var centerY = imgDeminsions.height * center[1];
-  var rect = rectCrop(zoom, center)(kbCanvasDeminsions, imgDeminsions);
+  var centerX = imgDimensions.width * center[0];
+  var centerY = imgDimensions.height * center[1];
+  var rect = rectCrop(zoom, center)(kbCanvasDimensions, imgDimensions);
   imgContext.beginPath();
   imgContext.strokeStyle = color;
   imgContext.beginPath();
@@ -67,15 +54,15 @@ var drawRectCrop = (zoom, center, color) => {
   if (x < 0) {
     x=0
   }
-  else if (x + w > imgDeminsions.width) {
-    x = imgDeminsions.width - w
+  else if (x + w > imgDimensions.width) {
+    x = imgDimensions.width - w
   }
 
   if (y < 0) {
     y=0
   }
-  else if (y + h > imgDeminsions.height) {
-    y = imgDeminsions.height - h
+  else if (y + h > imgDimensions.height) {
+    y = imgDimensions.height - h
   }
   // Original canvas
   imgContext.strokeRect(x, y, w, h)
@@ -147,7 +134,7 @@ function findCropZone(key) {
 
 // Dump some Ken Burns data about the waypoints
 function dumpKBData() {
-  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, canvasDeminsions sum ${recordingLength()}`)
+  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, canvasDimensions sum ${recordingLength()}`)
   displayArray(centerPoints);
   displayArray(zoom);
   displayArray(durations);
@@ -156,7 +143,7 @@ function dumpKBData() {
   console.groupCollapsed('CZ Klass objects')
   cropZones.forEach(obj => console.log(obj))
   console.groupEnd()
-  console.log(kbCanvasDeminsions)
+  console.log(kbCanvasDimensions)
   console.groupEnd();
   dispalyWaypoints();
 }
@@ -165,24 +152,27 @@ function dumpKBData() {
 function dispalyWaypoints() {
   waypoints.innerHTML = ""
   for (var i = 0; i < centerPoints.length; i++) {
-    const div = document.createElement("div")
-    div.className = "column"
+    // Controls are collapesed unless the WP is being modified or added
+    const divHeader = document.createElement("div")
+    divHeader.style.width = "max-content"
+    divHeader.className = modifiedWP == i ? "is-selected" : ""
     const p1 = document.createElement("p");
-    let text = `Waypoint ${i}: Color: ${color[i % color.length]}`
-    p1.innerText = text
-    const style = {
-      color: color[i % color.length],
-    }
     p1.className = "items"
-    Object.assign(p1.style, style)
-    const p2 = document.createElement("p");
-    text = `duration:${durations[i] / 1000}; delay:${delays[i] / 1000}`
-    p2.className = "items"
-    p2.innerText = text
-    div.appendChild(p1)
+    p1.innerText = `Waypoint ${i}`
+    p1.style.color = color[i % color.length]
+    // Button for expand or collapse quickview WP control section
+    const qvButton = document.createElement("button")
+    qvButton.setAttribute('data-quick-view', "")
+    qvButton.setAttribute('aria-expanded', modifiedWP == i)
+    qvButton.innerText =  modifiedWP != i  ? '🔽' : '🔼'
+    divHeader.appendChild(p1)
+    divHeader.appendChild(qvButton)
+
+    const divControls = document.createElement("div")
+    divControls.className = `column ${modifiedWP == i ? "": "is-hidden"} quickview-${i}`
     // TODO: Conditional Checkbox
     let textInputs = true;
-    waypoints.appendChild(div)
+    waypoints.appendChild(divHeader)
     // SLIDERS
     var uiCxInput = renderUi.slider(labels[0], centerPoints[i][0], i, inputChanged);
     var uiCyInput = renderUi.slider(labels[1], centerPoints[i][1], i, inputChanged);
@@ -199,23 +189,30 @@ function dispalyWaypoints() {
       var tuiSDelInput = renderUi.input(labels[9], delays[i] , i, inputChanged);
     }
 
-    waypoints.appendChild(uiCxInput)
-    if (textInputs) waypoints.appendChild(tuiCxInput)
-    waypoints.appendChild(uiCyInput)
-    if (textInputs) waypoints.appendChild(tuiCyInput)
-    waypoints.appendChild(uiZInput)
-    if (textInputs) waypoints.appendChild(tuiZInput)
-    waypoints.appendChild(uiSDurInput)
-    if (textInputs) waypoints.appendChild(tuiSDurInput)
-    waypoints.appendChild(uiSDelInput)
-    if (textInputs) waypoints.appendChild(tuiSDelInput)
+    divControls.appendChild(uiCxInput)
+    if (textInputs) divControls.appendChild(tuiCxInput)
+    divControls.appendChild(uiCyInput)
+    if (textInputs) divControls.appendChild(tuiCyInput)
+    divControls.appendChild(uiZInput)
+    if (textInputs) divControls.appendChild(tuiZInput)
+    divControls.appendChild(uiSDurInput)
+    if (textInputs) divControls.appendChild(tuiSDurInput)
+    divControls.appendChild(uiSDelInput)
+    if (textInputs) divControls.appendChild(tuiSDelInput)
 
-    waypoints.appendChild(p2)
+    const div = document.createElement("div")
+    div.className = "column"
+    div.appendChild(divHeader)
+    div.appendChild(divControls)
+    waypoints.appendChild(div)
     waypoints.appendChild(document.createElement("br"))
   }
+  modifiedWP = -1
   const rec = document.createElement("p");
   rec.innerText = `Legnth: ${(recordingLength() / 1000).toFixed(3)}s`
   waypoints.appendChild(rec)
+  // Add handlers for the WP control sections
+  quickView.render()
 }
 
 // UI Handlers
@@ -249,16 +246,17 @@ function inputChanged(ev, key) {
       break;
     case labels[3]:
     case labels[8]:
-      durations[idx] = emitter.value * 100;
+      durations[idx] = emitter.value;
       break;
     case labels[4]:
     case labels[9]:
-      delays[idx] = emitter.value * 100;
+      delays[idx] = emitter.value;
       break;
     default:
-      console.log(mappern)
+      return
   }
   crops[idx] = rectCrop(zoom[idx], centerPoints[idx])
+  modifiedWP = idx
   doImageMapping(exampleImageUrl);
   dispalyWaypoints()
 }
@@ -267,7 +265,7 @@ function inputKBChanged(ev, key) {
   const emitter = document.getElementById(key)
   const mapper = key.split('_')
   try {
-    kbCanvasDeminsions[mapper[1]] = Number.parseInt(emitter.value)
+    kbCanvasDimensions[mapper[1]] = Number.parseInt(emitter.value)
     side.innerHTML = ""
     doImageMapping(exampleImageUrl)
   }
@@ -361,21 +359,22 @@ const crops = [
 // Fabric objects to be filled by doImageMapping calling drawRectCrop
 const cropZones = [];
 let continueLoop = true;
+let modifiedWP = -1  // Waypoint contols to remain persistent
 //#endregion KB points
 
 // Image used in a loop Ken Burns example an image animation
 let exampleImageUrl = "tree.jfif"
-var kbCanvasDeminsions = { width: 400, height: 400 }
+var kbCanvasDimensions = { width: 400, height: 400 }
 var canvas;  // Ken Burns canvas for rendering
 
 const createKBCanvas = () => {
   // Canvas2D example
   var canvas2d = document.createElement("canvas");
   canvas2d.id = "animCanvas"
-  canvas2d.style.width = `${kbCanvasDeminsions.width}px`
-  canvas2d.style.height = `${kbCanvasDeminsions.height}px`
-  canvas2d.width = kbCanvasDeminsions.width
-  canvas2d.height = kbCanvasDeminsions.height
+  canvas2d.style.width = `${kbCanvasDimensions.width}px`
+  canvas2d.style.height = `${kbCanvasDimensions.height}px`
+  canvas2d.width = kbCanvasDimensions.width
+  canvas2d.height = kbCanvasDimensions.height
   return canvas2d
 }
 
@@ -389,8 +388,8 @@ function doImageMapping(imageUrl) {
 
   const ctx = canvas.getContext("2d");
   const dimInputs = imageDimensionsInputs()
-  side.appendChild(dimInputs)
   side.appendChild(canvas);
+  side.appendChild(dimInputs)
   var kenBurnsCanvas2d = new KenBurnsCanvas2D(ctx);
   loadCrossOriginImage(imageUrl, true)
     .then(exampleAnimation(kenBurnsCanvas2d))
@@ -404,8 +403,8 @@ function doImageMapping(imageUrl) {
     _canvas.setHeight(img.height)
     _canvas.setBackgroundImage(f_img);
 
-    imgDeminsions.width = img.width;
-    imgDeminsions.height = img.height;
+    imgDimensions.width = img.width;
+    imgDimensions.height = img.height;
     imgCanvas.width = img.width
     imgCanvas.height = img.height
     imgContext.drawImage(img, 0, 0);
@@ -419,7 +418,7 @@ function doImageMapping(imageUrl) {
 }
 
 // The raw image that will have a Ken Burns affect applied
-var imgDeminsions = { width: 0, height: 0 };
+var imgDimensions = { width: 0, height: 0 };
 var imgCanvas = document.getElementById("fabric-canvas");
 var imgContext = imgCanvas.getContext('2d');
 let image = new Image();
@@ -439,6 +438,7 @@ var canvasClick = (ev) => {
   delays.push((randomHundreth() * 1000).toFixed(2))
   crops.push(rectCrop(zoom[wayPoints], centerPoints[wayPoints]));
   continueLoop = true;
+  modifiedWP = centerPoints.length - 1
   dumpKBData();
   doImageMapping(exampleImageUrl);
 }
@@ -446,6 +446,7 @@ var canvasClick = (ev) => {
 // Handler for Select File to re-init key data
 const newImage = (image) => {
   exampleImageUrl = image
+  modifiedWP = -1
   clearKBData()
   imageToggle(null)
   doImageMapping(image)
@@ -454,6 +455,7 @@ const newImage = (image) => {
 //#region append elements to the DOM
 const waypoints = document.getElementById("waypoints");
 const header = document.getElementById("header");
+const side = document.getElementById("side");
 const gifContainer = document.getElementById("sideGif");
 const vidContainer = document.getElementById("sideWebM");
 const controls = document.getElementById("controls");
@@ -472,15 +474,21 @@ buttonRow.appendChild(renderUi.button('WebM Recording', startRecording))
 buttonRow.appendChild(renderUi.button('GIF Recording', startGif))
 dispalyWaypoints()
 
-// UI redering for KB image deminsions
+// UI redering for KB image dimensions
 function imageDimensionsInputs() {
+  const divKB = document.createElement("div")
+  const pKB = document.createElement("p")
+  pKB.innerText = "Animation Output"
+  divKB.className = "column"
+  divKB.appendChild(pKB)
   const div = document.createElement("div")
-  const uiKBWInput = renderUi.input('Width', kbCanvasDeminsions.width, 'width', inputKBChanged);
-  const uiKBHInput = renderUi.input('Height', kbCanvasDeminsions.height, 'height', inputKBChanged);
-  div.style.padding = '16px'
+  const uiKBWInput = renderUi.input('Width', kbCanvasDimensions.width, 'width', inputKBChanged);
+  const uiKBHInput = renderUi.input('Height', kbCanvasDimensions.height, 'height', inputKBChanged);
+  div.style.paddingBottom  = '16px'
   div.appendChild(uiKBWInput)
   div.appendChild(uiKBHInput)
-  return div
+  divKB.appendChild(div)
+  return divKB
 }
 //#endregion
 
@@ -518,13 +526,13 @@ var modifiedHandler = function (evt) {
   const yCenter = modifiedObject.top + modifiedObject.height / 2
   const oldY = centerPoints[index][1]
   const oldX = centerPoints[index][0]
-  centerPoints[index][0] = xCenter/imgDeminsions.width;
-  centerPoints[index][1] = yCenter/imgDeminsions.height;
+  centerPoints[index][0] = xCenter/imgDimensions.width;
+  centerPoints[index][1] = yCenter/imgDimensions.height;
 
   doImageMapping(exampleImageUrl)
   dispalyWaypoints()
   console.groupEnd()
-  console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter/imgDeminsions.width}, ${yCenter/imgDeminsions.height}`)
+  console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter/imgDimensions.width}, ${yCenter/imgDimensions.height}`)
 
 };
 
@@ -541,16 +549,16 @@ var scaledHandler = function (evt) {
   console.log(modifiedObject)
   // Zoom scale calculation and manage out-of-scale changes
   const scale = modifiedObject.getScaledWidth() / modifiedObject.getScaledHeight()
-  const scaleImg = imgDeminsions.width / imgDeminsions.height
-  const scaleKB = kbCanvasDeminsions.width / kbCanvasDeminsions.height
+  const scaleImg = imgDimensions.width / imgDimensions.height
+  const scaleKB = kbCanvasDimensions.width / kbCanvasDimensions.height
   // ATM assume the scale is mainatined
-  const newZoom = modifiedObject.getScaledWidth() / imgDeminsions.height
+  const newZoom = modifiedObject.getScaledWidth() / imgDimensions.height
   const oldZoom = zoom[index]
   zoom[index] = newZoom
   doImageMapping(exampleImageUrl)
   dispalyWaypoints()
   console.groupEnd()
-  // TODO: Handle X or Y scaling that !== kbCanvasDeminsions
+  // TODO: Handle X or Y scaling that !== kbCanvasDimensions
   console.log(`zoom n${newZoom} o${oldZoom} scales mod: ${scale} img: ${scaleImg} kb: ${scaleKB}`)
 }
 
