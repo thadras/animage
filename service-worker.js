@@ -1,7 +1,7 @@
 const $CACHE_STORE = 'animage';
 const $NAVIGATION_FALLBACK = 'index.html';
 
-const $FILES = ['bundle.js', 'gif.js', 'gif.worker.js', 'index.css', 'tree.jfif'];
+const $FILES = ['bundle.js', 'gif.js', 'gif.worker.js', 'index.css', 'index.html', 'tree.jfif'];
 
 const navigateFallback = $NAVIGATION_FALLBACK;
 
