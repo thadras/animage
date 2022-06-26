@@ -1,6 +1,5 @@
 // Waypoint section collapsing credit to: https://css-tricks.com/expandable-sections-within-a-css-grid/
 const openQuickView = (toggle, toggleParent, fullwidth) => {
-    console.log(`open toggle ${toggle.innerText}`)
     toggle.innerText = '🔼'
     toggle.setAttribute('aria-expanded', 'true');
     toggleParent.classList.toggle('is-selected');
@@ -10,7 +9,6 @@ const openQuickView = (toggle, toggleParent, fullwidth) => {
 };
 
 const closeQuickView = (toggle, toggleParent, fullwidth) => {
-    console.log(`open toggle ${toggle.innerText}`)
     toggle.innerText = '🔽'
     toggle.setAttribute('aria-expanded', 'false');
     toggleParent.classList.toggle('is-selected');

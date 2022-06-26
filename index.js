@@ -107,11 +107,12 @@ function clearKBData() {
   continueLoop = false;
   canvas.remove()
   dumpKBData();
-  console.groupCollapsed('drawing the clean slate')
+  console.groupCollapsed('Rendering the image without waypoints')
   console.log(image)
   imgContext.drawImage(image, 0, 0);
   console.groupEnd()
   waypoints.innerHTML = ""
+  // Restore the image display in-case it was hidden
   imageToggle(null)
 }
 
@@ -397,7 +398,7 @@ function doImageMapping(imageUrl) {
 
   // Load full image with on-click handler
   loadCrossOriginImage(imageUrl).then(img => {
-    console.log(`loaded the image with w: ${img.width} by h: ${img.height}`);
+    console.log(`Drawing image with width: ${img.width}, and height: ${img.height}`);
     var f_img = new fabric.Image(img);
     _canvas.setWidth(img.width)
     _canvas.setHeight(img.height)
@@ -583,9 +584,6 @@ var mouseDown = function (evt) {
     }
     console.groupEnd()
   }
-  console.groupCollapsed('🖼Fabric object manipulation, Nothing to do with this mouse down');
-  console.log(evt)
-  console.groupEnd()
 };
 
 var info = document.getElementById('info');
