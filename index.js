@@ -120,6 +120,7 @@ function clearKBData() {
   delays.splice(0, delays.length);
   crops.splice(0, crops.length);
   easings.splice(0, easings.length);
+  easingSelectValues.splice(0, easingSelectValues.length);
   resetCropZones();
   continueLoop = false;
   canvas.remove()
@@ -203,7 +204,7 @@ const exampleAnimation =
         .catch(() => console.log('Swallow error from clearing data mid-exe')); // loop again
 //#endregion
 
-//#region  Animation constants and data structures
+//#region Animation constants and data structures
 const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
 // Labels for UI Sliders & Inputs contols
 const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS', "Bezier"]
