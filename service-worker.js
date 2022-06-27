@@ -1,4 +1,4 @@
-const VERSION = "0.2"
+const VERSION = "0.3"
 const APP_PREFIX = "animage_"
 const CACHE_STORE = APP_PREFIX + VERSION
 const NAVIGATION_FALLBACK = 'index.html';
