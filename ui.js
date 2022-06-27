@@ -60,9 +60,33 @@ let renderUi = {
     div.appendChild(input)
     return div
    
+  },
+
+  select: function (inputLabel, key, value, options, callback){
+    const inputKey = `${inputLabel}_${key}`
+    const div = document.createElement("div")
+    div.className = "selectContainer"
+    const label = document.createElement("label")
+    const select = document.createElement("select")
+    label.innerText = inputLabel
+    label.for = select.id = inputKey
+    select.value = value
+    select.name = inputLabel
+    select.className = "selecter"
+    select.addEventListener('change', (ev) => callback(ev, inputKey))
+    options.forEach((option) => {
+      const opt = document.createElement("option")
+      opt.value = option.value
+      opt.innerText = option.name
+      opt.selected = option.value == value
+      select.appendChild(opt)
+    })
+    div.appendChild(label)
+    div.appendChild(select)
+    return div
   }
-  
 }
+
 function createImageFromBlob(image, loaded) {
   const reader = new FileReader();
   const type = image.type.split('/');
@@ -77,7 +101,6 @@ function createImageFromBlob(image, loaded) {
 }
 
 const doFileRead = (reader, loaded) => {
-
   const image = new Image();
   image.src = reader.result;
   const vw = Math.max(

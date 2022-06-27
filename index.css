@@ -94,6 +94,7 @@ button, a {
     margin: 2px;
     padding: 6px;
     border-radius: 12px;
+    border: 1px solid;
 }
 
 /*chrome and opera*/
@@ -134,6 +135,13 @@ input[type=range]::-webkit-slider-thumb {
     background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAZCAYAAAArK+5dAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAARoSURBVEhLrZZ7TFtVGMC/e+69tKUP2rVMCgNCNxjQBaxKZRtB5hyugWRs04DaPzDTRBOTGd0SY2JmDD6I70fQZUSnMp2KkkBdthIdY8NkwgblZRnyaBm0hQHlMWjp43hKC/JqrQm/my/3nPOde75zvu8751wK/gNTb6vSNnQ7pq/fBGbbOLgZAUjjFKBIUUDSPVutyYnyrkDXDQlq4PJXr+d9+W1Vob7FnDox5xViIA8OKAkUFQESufKu6sARw5Naja70YVVTQBWanvrTOc/vT/osis80MDQ9RiNqgTS7NxbKjWjeuESe0Zhb+s4rpC00Ld+9nJOXLPhcyGVGGETNkyY3VxKDleo8XHDoMNbkZuEd0SLMAFnOKkELPEn8kOzeklOkvjEDtWXZjyRHksHREKLARYvicdbBYny87BNc13QT9wyY8bWqj3Dp7p04cp0BvzDCmGHxrsfWG5kaqM1+cU/CGRGXtvgGF8SpccnJCnypuQubbHfw9JwDu70zuPPCGfxsbnpQAz5hhTHWpILyN0j5X/RlD5XHC1krcYuLlabjJ06dx+bRGez14hXM4I5fv8DHctJCGgCgF3gydeOxqs69pA5osueXzJrq9kzrrEvmZmSMar8WTj6dD/HRApIpvi5LEM+HhZd2TLSpdNVXSoyTrn3QVaU9sY2D7ESDpUoN/v56P1418WWcYa7AL4gV44qW0WnUd/Ma2Fxe0iYCRepeKFIlBNkcvj7h43XZQfdzjRAN3rCC12eTI4OjRRrgsrS/xzp8qf//6O7rBzRqJCWfAZ4QSgvTFxWbxbDhCiDsCNQYGrgR4QYyPNy3jYD4cQGPOxdA32zxlzcJxLCAEh6U+dNxbhIqzzbAnNPj124CKQeeArRTrXQKaYTBMw6DA3/CrbHZgHotEYF3eDC8WNA+d8KL5EmZjSki5joFDo+p9w+oqL0BLo8v6mtBgXcYUCyIUo5YMxTiC2jbwXJDsVraykcw5RzpBv25b+DHq38tJtZqwnQdRXtQ5NbJjMcLqx+Qcz5YnFa+Nl+XLuN3MeBwmZp18PGnX4O+tZfUPCsMuUmsEJGgdxSBAjpC4NqSmt+pLVCdl/PYywEFwJnSrA+3i7lW8jkGVoKV+4rxa6d1uMU4hO9MTOPpWTs21FWS01QZ5KigMGL4Lm5Umrngbf3yabq8bX+oqZxyDnSz/Va7fGp2JmJ00Mi0G9qgrb0djH+bwTZqgZFbHWBo7YBem33NvqY8NMt3RIqThncdOv5Tw/vFrwYUqxnvrs9+S7v7ze0ywW8cBGOkyXddYoYXhWMTFTg5MRZH8zmY+HVp5m4K0fMUzR3iR99Xp3np3Op7IBg1776Qp9mx5T0pjyX3MhojbltxD/uCgdw0wy7QDGOl+ZLfxfcXBR04VMTg4tly9dX6iwWXmjqyeix2/jxJJF+QEVcI4sS0mZxHD3do9qh1zxzNDfpHEdLAEhaLSelxumPuOn0LYIDD5wCH5lnlcmnIfyIAgH8AbZj76qfgDh0AAAAASUVORK5CYII');
     cursor: pointer;
     -webkit-appearance: none;
+}
+
+select {
+    padding: 6px;
+    margin-top: 6px;
+    border: 1px solid;
+    border-radius: 12px
 }
 
 .fullwidth {

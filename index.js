@@ -94,6 +94,16 @@ var drawRectCrop = (zoom, center, color) => {
 
 }
 
+const fillEasingList = () => {
+  if (!easingSelectValues.length) return
+  easings.splice(0, easings.length)
+  easingSelectValues.forEach((val) =>{
+    const params = []
+    val.split(',').forEach((p) => params.push(Number.parseFloat(p)))
+    easings.push(bezierEasing(params[0], params[1], params[2], params[3]))
+  })
+}
+
 function displayArray(data) {
   let msg = ""
   data.forEach((value, key) => {
@@ -140,12 +150,13 @@ function findCropZone(key) {
 
 // Dump some Ken Burns data about the waypoints
 function dumpKBData() {
-  console.groupCollapsed(`scaled ${imgScale} ${zoom.length} centerPoints, zoom, durations, delay, canvasDimensions sum ${recordingLength()}`)
+  console.groupCollapsed(`scaled ${imgScale} ${zoom.length} centerPoints, zoom, durations, delay, bezier values, sum ${recordingLength()}`)
   if (zoom.length) {
     displayArray(centerPoints);
     displayArray(zoom);
     displayArray(durations);
     displayArray(delays);
+    displayArray(easingSelectValues);
     cropZones.forEach(obj => console.log(obj.ownMatrixCache.key))
     console.groupCollapsed('CZ Klass objects')
     cropZones.forEach(obj => console.log(obj))
@@ -153,7 +164,8 @@ function dumpKBData() {
     console.log('No waypoints')
   }
   console.groupEnd()
-  console.log(kbCanvasDimensions)
+  console.log({bezierOptions})
+  console.log('👆FYI https://cubic-bezier.com/')
   console.groupEnd();
   dispalyWaypointControls();
 }
@@ -194,7 +206,18 @@ const exampleAnimation =
 //#region  Animation constants and data structures
 const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
 // Labels for UI Sliders & Inputs contols
-const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS']
+const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS', "Bezier"]
+const bezierOptions = [
+    { "name": "ease", "value": "0.25,.1,0.25,1" },
+    { "name": "linear", "value": "0,0,1,1" },
+    { "name": "ease-in", "value": ".42,0,1,1" },
+    { "name": "ease-in-2", "value": "0.6, 0, 1, 1" },
+    { "name": "ease-in-3", "value": "0.5, 0, 1, 1" },
+    { "name": "ease-out", "value": "0,0,0.58,1" },
+    { "name": "ease-out-2", "value": "0, 0, 0.6, 1" },
+    { "name": "ease-in-out", "value": "0.42,0,0.58,1" },
+    { "name": "ease-in-out-2", "value": "0.8, 0, 0.2, 1" }
+]
 // KB Center Point & Zoom levels for animation freeze-frame 
 const centerPoints = [
   [0.45, 0.32],
@@ -208,14 +231,17 @@ const zoom = [
   0.5,
   0.3,
 ];
-// Frame transition easing  TODO: What are these doing, and should they have controls?
+// Frame easing uses cubic-bezier curves for transition speed change
+// & will be init by fillEasingList when called via doImageMapping
 const easings = [
-  bezierEasing(0.6, 0, 1, 1),
-  bezierEasing(0, 0, 1, 1),
-  bezierEasing(0.8, 0, 0.2, 1),
-  bezierEasing(0.5, 0, 1, 1),
-  bezierEasing(0, 0, 0.6, 1),
 ];
+const easingSelectValues = [
+  "0.6, 0, 1, 1",
+  "0, 0, 1, 1",
+  "0.8, 0, 0.2, 1",
+  "0.5, 0, 1, 1",
+  "0, 0, 0.6, 1",
+]
 // Duration of easing between frames
 const durations = [
   3000,
@@ -277,6 +303,7 @@ function doImageMapping(imageUrl) {
   }
   canvas = createKBCanvas()
 
+  fillEasingList()
   const ctx = canvas.getContext("2d");
   const dimInputs = imageDimensionsInputs()
   side.appendChild(canvas);
@@ -317,7 +344,8 @@ const canvasClick = (ev) => {
   const wayPoints = zoom.length;
   zoom.push(randomHundreth())
   console.log(`Click at cX ${cX} cY:${cY}`)
-  easings.push(easings[Math.floor(Math.random() * wayPoints)]);
+  const randomCurve = Math.floor(Math.random() * bezierOptions.length)
+  easingSelectValues.push(bezierOptions[randomCurve].value);
   // Duration of easing between frames
   durations.push((randomHundreth() * 10000).toFixed(2))
   // Delay to freeze-frame
@@ -401,8 +429,9 @@ function dispalyWaypointControls() {
       var tuiCyInput = renderUi.input(labels[6], centerPoints[i][1]*100, i, inputChanged);
       var tuiZInput = renderUi.input(labels[7], zoom[i]*100, i, inputChanged);
       var tuiSDurInput = renderUi.input(labels[8], durations[i], i, inputChanged);
-      var tuiSDelInput = renderUi.input(labels[9], delays[i] , i, inputChanged);
+      var tuiSDelInput = renderUi.input(labels[9], delays[i], i, inputChanged);
     }
+    const bezier = renderUi.select(labels[10], i, easingSelectValues[i], bezierOptions, bezierChanged)
 
     divControls.appendChild(uiCxInput)
     if (textInputs) divControls.appendChild(tuiCxInput)
@@ -414,6 +443,7 @@ function dispalyWaypointControls() {
     if (textInputs) divControls.appendChild(tuiSDurInput)
     divControls.appendChild(uiSDelInput)
     if (textInputs) divControls.appendChild(tuiSDelInput)
+    divControls.appendChild(bezier)
 
     const div = document.createElement("div")
     div.className = "wp-header"
@@ -508,6 +538,13 @@ function inputKBChanged(ev, key) {
   }
 }
 
+function bezierChanged(ev, key) {
+  const select = document.getElementById(key)
+  console.log(`bezier changed at ${JSON.stringify(key)} to ${select.value}`)
+  const index = key.split('_')[1]
+  easingSelectValues[index] = select.value
+  doImageMapping(exampleImageUrl)
+}
 //#endregion
 
 //#region Fabric helper methods
