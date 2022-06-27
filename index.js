@@ -33,6 +33,10 @@ function simpleArraySum(ar) {
   return sum;
 }
 
+function recordingLength() {
+  return Number.parseFloat(simpleArraySum(durations)) + Number.parseFloat(simpleArraySum(delays))
+}
+
 const randomHundreth = () => Math.floor(10 + Math.random() * 90) / 100
 
 var drawRectCrop = (zoom, center, color) => {
@@ -77,10 +81,13 @@ var drawRectCrop = (zoom, center, color) => {
     stroke: color,
     strokeWidth: '5',
     fill : 'transparent',
-    // allows resizing without maintaining scale, & snaps to width at KB scale
+    cornerColor: color,
+    // allows resizing that maintains scale
     lockUniScaling: true,
     lockRotation: true,
   });
+  // Disable vert/horz/rotation controls
+  cz.setControlsVisibility({ml: false, mr: false, mt: false, mb: false, mtr: false})
   cropZones.push(cz)
   _canvas.add(cz)
   _canvas.renderAll()
@@ -107,10 +114,8 @@ function clearKBData() {
   continueLoop = false;
   canvas.remove()
   dumpKBData();
-  console.groupCollapsed('Rendering the image without waypoints')
-  console.log(image)
+  console.log('Rendering the image without waypoints')
   imgContext.drawImage(image, 0, 0);
-  console.groupEnd()
   waypoints.innerHTML = ""
   // Restore the image display in-case it was hidden
   imageToggle(null)
@@ -135,147 +140,25 @@ function findCropZone(key) {
 
 // Dump some Ken Burns data about the waypoints
 function dumpKBData() {
-  console.groupCollapsed(`${zoom.length} centerPoints, zoom, durations, delay, canvasDimensions sum ${recordingLength()}`)
-  displayArray(centerPoints);
-  displayArray(zoom);
-  displayArray(durations);
-  displayArray(delays);
-  cropZones.forEach(obj => console.log(obj.ownMatrixCache.key))
-  console.groupCollapsed('CZ Klass objects')
-  cropZones.forEach(obj => console.log(obj))
+  console.groupCollapsed(`scaled ${imgScale} ${zoom.length} centerPoints, zoom, durations, delay, canvasDimensions sum ${recordingLength()}`)
+  if (zoom.length) {
+    displayArray(centerPoints);
+    displayArray(zoom);
+    displayArray(durations);
+    displayArray(delays);
+    cropZones.forEach(obj => console.log(obj.ownMatrixCache.key))
+    console.groupCollapsed('CZ Klass objects')
+    cropZones.forEach(obj => console.log(obj))
+  } else {
+    console.log('No waypoints')
+  }
   console.groupEnd()
   console.log(kbCanvasDimensions)
   console.groupEnd();
-  dispalyWaypoints();
+  dispalyWaypointControls();
 }
 
-// Update nav bar to include the Ken Burns waypoint UI controls
-function dispalyWaypoints() {
-  waypoints.innerHTML = ""
-  for (var i = 0; i < centerPoints.length; i++) {
-    // Controls are collapesed unless the WP is being modified or added
-    const divHeader = document.createElement("div")
-    divHeader.style.width = "max-content"
-    divHeader.className = modifiedWP == i ? "is-selected" : ""
-    const p1 = document.createElement("p");
-    p1.className = "items"
-    p1.innerText = `Waypoint ${i}`
-    p1.style.color = color[i % color.length]
-    // Button for expand or collapse quickview WP control section
-    const qvButton = document.createElement("button")
-    qvButton.setAttribute('data-quick-view', "")
-    qvButton.setAttribute('aria-expanded', modifiedWP == i)
-    qvButton.innerText =  modifiedWP != i  ? '🔽' : '🔼'
-    divHeader.appendChild(p1)
-    divHeader.appendChild(qvButton)
-
-    const divControls = document.createElement("div")
-    divControls.className = `column ${modifiedWP == i ? "": "is-hidden"} quickview-${i}`
-    // TODO: Conditional Checkbox
-    let textInputs = true;
-    waypoints.appendChild(divHeader)
-    // SLIDERS
-    var uiCxInput = renderUi.slider(labels[0], centerPoints[i][0], i, inputChanged);
-    var uiCyInput = renderUi.slider(labels[1], centerPoints[i][1], i, inputChanged);
-    var uiZInput = renderUi.slider(labels[2], zoom[i], i, inputChanged);
-    var uiSDurInput = renderUi.slider(labels[3], durations[i] / 10000, i, inputChanged);
-    var uiSDelInput = renderUi.slider(labels[4], delays[i] / 10000, i, inputChanged);
-
-    if (textInputs) {
-      // TEXT
-      var tuiCxInput = renderUi.input(labels[5], centerPoints[i][0]*100, i, inputChanged);
-      var tuiCyInput = renderUi.input(labels[6], centerPoints[i][1]*100, i, inputChanged);
-      var tuiZInput = renderUi.input(labels[7], zoom[i]*100, i, inputChanged);
-      var tuiSDurInput = renderUi.input(labels[8], durations[i], i, inputChanged);
-      var tuiSDelInput = renderUi.input(labels[9], delays[i] , i, inputChanged);
-    }
-
-    divControls.appendChild(uiCxInput)
-    if (textInputs) divControls.appendChild(tuiCxInput)
-    divControls.appendChild(uiCyInput)
-    if (textInputs) divControls.appendChild(tuiCyInput)
-    divControls.appendChild(uiZInput)
-    if (textInputs) divControls.appendChild(tuiZInput)
-    divControls.appendChild(uiSDurInput)
-    if (textInputs) divControls.appendChild(tuiSDurInput)
-    divControls.appendChild(uiSDelInput)
-    if (textInputs) divControls.appendChild(tuiSDelInput)
-
-    const div = document.createElement("div")
-    div.className = "column"
-    div.appendChild(divHeader)
-    div.appendChild(divControls)
-    waypoints.appendChild(div)
-    waypoints.appendChild(document.createElement("br"))
-  }
-  modifiedWP = -1
-  const rec = document.createElement("p");
-  rec.innerText = `Legnth: ${(recordingLength() / 1000).toFixed(3)}s`
-  waypoints.appendChild(rec)
-  // Add handlers for the WP control sections
-  quickView.render()
-}
-
-// UI Handlers
-function inputChanged(ev, key) {
-  const emitter = document.getElementById(key)
-  const mapper = key.split('_')
-  const idx = mapper[1];
-  console.groupCollapsed(`received change on ${JSON.stringify(mapper)} to value ${emitter.value}`)
-  console.log(ev)
-  console.groupEnd()
-
-  // Error Checking
-  if (isNaN(emitter.value)) {
-    console.error(`${key} input of ${emitter.value} is NaN, so input rejected 🤷‍♂️`)
-    emitter.style.outline = '1px solid red'
-    return
-  }
-
-  switch (mapper[0]) {
-    case labels[0]:
-    case labels[5]:
-      centerPoints[idx][0] = emitter.value / 100;
-      break;
-    case labels[1]:
-    case labels[6]:
-      centerPoints[idx][1] = emitter.value / 100;
-      break;
-    case labels[2]:
-    case labels[7]:
-      zoom[idx] = emitter.value / 100;
-      break;
-    case labels[3]:
-    case labels[8]:
-      durations[idx] = mapper[0] == labels[3] ? emitter.value * 100 : emitter.value
-      break;
-    case labels[4]:
-    case labels[9]:
-      delays[idx] = mapper[0] == labels[4] ? emitter.value * 100 : emitter.value
-      break;
-    default:
-      return
-  }
-  crops[idx] = rectCrop(zoom[idx], centerPoints[idx])
-  modifiedWP = idx
-  doImageMapping(exampleImageUrl);
-  dispalyWaypoints()
-}
-
-function inputKBChanged(ev, key) {
-  const emitter = document.getElementById(key)
-  const mapper = key.split('_')
-  try {
-    kbCanvasDimensions[mapper[1]] = Number.parseInt(emitter.value)
-    side.innerHTML = ""
-    doImageMapping(exampleImageUrl)
-  }
-  catch (e) {
-    console.error(e)
-  }
-}
-
-// Kludge to minimize raw image, but leaves the Fabric Canvas in-view for WIP dev
+// Minimize raw image and leave the Ken Burns Canvas in-view for WP edits
 function imageToggle(ev) {
   const div = document.getElementById("target")
   var style = div.style
@@ -308,7 +191,7 @@ const exampleAnimation =
         .catch(() => console.log('Swallow error from clearing data mid-exe')); // loop again
 //#endregion
 
-//#region  Animation constants and datat structures
+//#region  Animation constants and data structures
 const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
 // Labels for UI Sliders & Inputs contols
 const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS']
@@ -363,17 +246,24 @@ let continueLoop = true;
 let modifiedWP = -1  // Waypoint contols to remain persistent
 //#endregion KB points
 
-// Image used in a loop Ken Burns example an image animation
+//#region High-level variables and UI processors
+// The image, possibly scaled, that will have a Ken Burns affect applied
 let exampleImageUrl = "tree.jfif"
-var kbCanvasDimensions = { width: 400, height: 400 }
-var canvas;  // Ken Burns canvas for rendering
+let image = new Image();
+const imgDimensions = { width: 0, height: 0 };
+const imgCanvas = document.getElementById("fabric-canvas");
+const imgContext = imgCanvas.getContext('2d');
+
+// Canvas used to loop a Ken Burns animation of the above image
+let canvas;  // Ken Burns canvas for rendering animation
+const kbCanvasDimensions = { width: 400, height: 400 }
 
 const createKBCanvas = () => {
   // Canvas2D example
   var canvas2d = document.createElement("canvas");
   canvas2d.id = "animCanvas"
-  canvas2d.style.width = `${kbCanvasDimensions.width}px`
-  canvas2d.style.height = `${kbCanvasDimensions.height}px`
+  canvas2d.style.width = `${Math.ceil(kbCanvasDimensions.width)}px`
+  canvas2d.style.height = `${Math.ceil(kbCanvasDimensions.height)}px`
   canvas2d.width = kbCanvasDimensions.width
   canvas2d.height = kbCanvasDimensions.height
   return canvas2d
@@ -381,7 +271,7 @@ const createKBCanvas = () => {
 
 // Main functional of drawing image & rendering Ken Burn transition between waypoints
 function doImageMapping(imageUrl) {
-  exampleImageUrl = imageUrl;
+  exampleImageUrl = imageUrl
   if (canvas) {
     side.innerHTML = ""
   }
@@ -398,17 +288,18 @@ function doImageMapping(imageUrl) {
 
   // Load full image with on-click handler
   loadCrossOriginImage(imageUrl).then(img => {
-    console.log(`Drawing image with width: ${img.width}, and height: ${img.height}`);
+    console.log(`Loaded image with width: ${img.width}, and height: ${img.height}`);
     var f_img = new fabric.Image(img);
-    _canvas.setWidth(img.width)
-    _canvas.setHeight(img.height)
+    f_img.scaleX = imgScale
+    f_img.scaleY = imgScale
+    _canvas.setWidth(f_img.getScaledWidth())
+    _canvas.setHeight(f_img.getScaledHeight())
     _canvas.setBackgroundImage(f_img);
-
-    imgDimensions.width = img.width;
-    imgDimensions.height = img.height;
-    imgCanvas.width = img.width
-    imgCanvas.height = img.height
-    imgContext.drawImage(img, 0, 0);
+    if (imgScale != 1 ) {
+      console.log(`Drawing scaled image width: ${_canvas.width}, and height: ${_canvas.height}`);
+    }
+    imgDimensions.width = imgCanvas.width =  f_img.getScaledWidth();
+    imgDimensions.height = imgCanvas.height = f_img.getScaledHeight();
     imgCanvas.addEventListener('click', canvasClick, false);
 
     resetCropZones()
@@ -418,14 +309,8 @@ function doImageMapping(imageUrl) {
   });
 }
 
-// The raw image that will have a Ken Burns affect applied
-var imgDimensions = { width: 0, height: 0 };
-var imgCanvas = document.getElementById("fabric-canvas");
-var imgContext = imgCanvas.getContext('2d');
-let image = new Image();
-
 // UI interaction of adding a waypoint, with random initialization, and redrawing
-var canvasClick = (ev) => {
+const canvasClick = (ev) => {
   var cX = ev.offsetX / imgCanvas.width
   var cY = ev.offsetY / imgCanvas.height
   centerPoints.push([Math.floor(cX * 100) / 100, Math.floor(cY * 100) / 100])
@@ -444,14 +329,18 @@ var canvasClick = (ev) => {
   doImageMapping(exampleImageUrl);
 }
 
+let imgScale = 1
 // Handler for Select File to re-init key data
-const newImage = (image) => {
+const newImage = (image, scale) => {
+  imgScale = scale
+  console.log(`scale new image by ${imgScale}%`)
   exampleImageUrl = image
   modifiedWP = -1
   clearKBData()
   imageToggle(null)
   doImageMapping(image)
 }
+//#endregion
 
 //#region append elements to the DOM
 const waypoints = document.getElementById("waypoints");
@@ -462,7 +351,7 @@ const vidContainer = document.getElementById("sideWebM");
 const controls = document.getElementById("controls");
 const buttonRow = document.createElement("div");
 
-header.appendChild(title("Animage Ken Burns Render"));
+header.insertBefore(title("Animage Ken Burns Render"), controls);
 doImageMapping(exampleImageUrl)
 
 controls.appendChild(buttonRow);
@@ -473,14 +362,81 @@ buttonRow.appendChild(renderUi.button('Console Dump', dumpKBData))
 buttonRow.appendChild(renderUi.button('Restart Loop', () => doImageMapping(exampleImageUrl)))
 buttonRow.appendChild(renderUi.button('WebM Recording', startRecording))
 buttonRow.appendChild(renderUi.button('GIF Recording', startGif))
-dispalyWaypoints()
+dispalyWaypointControls()
+
+// Update nav bar to include the Ken Burns waypoint UI controls
+function dispalyWaypointControls() {
+  waypoints.innerHTML = ""
+  for (var i = 0; i < centerPoints.length; i++) {
+    // Controls are collapesed unless the WP is being modified or added
+    const divHeader = document.createElement("div")
+    divHeader.className = modifiedWP == i ? "is-selected" : ""
+    const p1 = document.createElement("p");
+    p1.className = "items"
+    p1.innerText = `Waypoint ${i}`
+    p1.style.color = color[i % color.length]
+    // Button for expand or collapse quickview WP control section
+    const qvButton = document.createElement("button")
+    qvButton.setAttribute('data-quick-view', "")
+    qvButton.setAttribute('aria-expanded', modifiedWP == i)
+    qvButton.innerText =  modifiedWP != i  ? '🔽' : '🔼'
+    divHeader.appendChild(p1)
+    divHeader.appendChild(qvButton)
+
+    const divControls = document.createElement("div")
+    divControls.className = `column ${modifiedWP == i ? "": "is-hidden"} quickview-${i}`
+    // TODO: Conditional Checkbox
+    let textInputs = true;
+    waypoints.appendChild(divHeader)
+    // SLIDERS
+    var uiCxInput = renderUi.slider(labels[0], centerPoints[i][0], i, inputChanged);
+    var uiCyInput = renderUi.slider(labels[1], centerPoints[i][1], i, inputChanged);
+    var uiZInput = renderUi.slider(labels[2], zoom[i], i, inputChanged);
+    var uiSDurInput = renderUi.slider(labels[3], durations[i] / 10000, i, inputChanged);
+    var uiSDelInput = renderUi.slider(labels[4], delays[i] / 10000, i, inputChanged);
+
+    if (textInputs) {
+      // TEXT
+      var tuiCxInput = renderUi.input(labels[5], centerPoints[i][0]*100, i, inputChanged);
+      var tuiCyInput = renderUi.input(labels[6], centerPoints[i][1]*100, i, inputChanged);
+      var tuiZInput = renderUi.input(labels[7], zoom[i]*100, i, inputChanged);
+      var tuiSDurInput = renderUi.input(labels[8], durations[i], i, inputChanged);
+      var tuiSDelInput = renderUi.input(labels[9], delays[i] , i, inputChanged);
+    }
+
+    divControls.appendChild(uiCxInput)
+    if (textInputs) divControls.appendChild(tuiCxInput)
+    divControls.appendChild(uiCyInput)
+    if (textInputs) divControls.appendChild(tuiCyInput)
+    divControls.appendChild(uiZInput)
+    if (textInputs) divControls.appendChild(tuiZInput)
+    divControls.appendChild(uiSDurInput)
+    if (textInputs) divControls.appendChild(tuiSDurInput)
+    divControls.appendChild(uiSDelInput)
+    if (textInputs) divControls.appendChild(tuiSDelInput)
+
+    const div = document.createElement("div")
+    div.className = "wp-header"
+    div.appendChild(divHeader)
+    div.appendChild(divControls)
+    waypoints.appendChild(div)
+    waypoints.appendChild(document.createElement("br"))
+  }
+  modifiedWP = -1
+  const rec = document.createElement("p");
+  rec.innerText = `Legnth: ${(recordingLength() / 1000).toFixed(3)}s`
+  waypoints.appendChild(rec)
+  // Add handlers for the WP control sections
+  quickView.render()
+}
 
 // UI redering for KB image dimensions
 function imageDimensionsInputs() {
   const divKB = document.createElement("div")
   const pKB = document.createElement("p")
   pKB.innerText = "Animation Output"
-  divKB.className = "column"
+  divKB.className = "column items"
+  divKB.style.alignSelf = "center"
   divKB.appendChild(pKB)
   const div = document.createElement("div")
   const uiKBWInput = renderUi.input('Width', kbCanvasDimensions.width, 'width', inputKBChanged);
@@ -491,15 +447,75 @@ function imageDimensionsInputs() {
   divKB.appendChild(div)
   return divKB
 }
+
+// UI Handlers
+function inputChanged(ev, key) {
+  const emitter = document.getElementById(key)
+  const mapper = key.split('_')
+  const idx = mapper[1];
+  console.groupCollapsed(`received change on ${JSON.stringify(mapper)} to value ${emitter.value}`)
+  console.log(ev)
+  console.groupEnd()
+
+  // Error Checking
+  if (isNaN(emitter.value)) {
+    console.error(`${key} input of ${emitter.value} is NaN, so input rejected 🤷‍♂️`)
+    emitter.style.outline = '1px solid red'
+    return
+  }
+
+  switch (mapper[0]) {
+    case labels[0]:
+    case labels[5]:
+      centerPoints[idx][0] = Number.parseFloat(emitter.value / 100).toPrecision(3)
+      break;
+    case labels[1]:
+    case labels[6]:
+      centerPoints[idx][1] =Number.parseFloat(emitter.value / 100).toPrecision(3)
+      break;
+    case labels[2]:
+    case labels[7]:
+      zoom[idx] = emitter.value / 100 < 1 ? Number.parseFloat(emitter.value / 100).toPrecision(3) : 0.98;
+      break;
+    // The range inputs for time values have been scaled whereas the text are as-is
+    case labels[3]:
+    case labels[8]:
+      durations[idx] = mapper[0] == labels[3] ? emitter.value * 100 : emitter.value
+      break;
+    case labels[4]:
+    case labels[9]:
+      delays[idx] = mapper[0] == labels[4] ? emitter.value * 100 : emitter.value
+      break;
+    default:
+      return
+  }
+  crops[idx] = rectCrop(zoom[idx], centerPoints[idx])
+  modifiedWP = idx
+  doImageMapping(exampleImageUrl);
+  dispalyWaypointControls()
+}
+
+function inputKBChanged(ev, key) {
+  const emitter = document.getElementById(key)
+  const mapper = key.split('_')
+  try {
+    kbCanvasDimensions[mapper[1]] = Number.parseInt(emitter.value)
+    side.innerHTML = ""
+    doImageMapping(exampleImageUrl)
+  }
+  catch (e) {
+    console.error(e)
+  }
+}
+
 //#endregion
 
 //#region Fabric helper methods
-// imageToggle(1)  // Hide ordinary canvas till ready to replace it with fabric canvas
 var _canvas =  new fabric.Canvas('fabric-canvas', {
   containerClass: 'fabric-canvas',
   enableRetinaScaling: false,
   interactive: true,
-  selection : false,
+  selection : true,
   controlsAboveOverlay:true,
   centeredScaling:true,
   allowTouchScrolling: true,
@@ -508,9 +524,9 @@ var _canvas =  new fabric.Canvas('fabric-canvas', {
 //handler for done modifying objects on canvas
 var modifiedHandler = function (evt) {
   var modifiedObject = evt.target;
-  if (!modifiedObject) { return }  // Unlikely, but CYA 🤯
-  if ( modifiedObject.getScaledWidth() - modifiedObject.width >= 1
-      || modifiedObject.getScaledHeight() - modifiedObject.height  >= 1 ) {
+  if (!modifiedObject) { return }  // Unlikely CYA 🤯
+  if ( Math.abs(modifiedObject.getScaledWidth() - modifiedObject.width) > 1
+      || Math.abs(modifiedObject.getScaledHeight() - modifiedObject.height)  > 1 ) {
     console.log('skip recentering on a scaled event')
     return
   }
@@ -527,11 +543,11 @@ var modifiedHandler = function (evt) {
   const yCenter = modifiedObject.top + modifiedObject.height / 2
   const oldY = centerPoints[index][1]
   const oldX = centerPoints[index][0]
-  centerPoints[index][0] = xCenter/imgDimensions.width;
-  centerPoints[index][1] = yCenter/imgDimensions.height;
+  centerPoints[index][0] = Number.parseFloat(xCenter/imgDimensions.width).toPrecision(3);
+  centerPoints[index][1] = Number.parseFloat(yCenter/imgDimensions.height).toPrecision(3);
 
   doImageMapping(exampleImageUrl)
-  dispalyWaypoints()
+  dispalyWaypointControls()
   console.groupEnd()
   console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter/imgDimensions.width}, ${yCenter/imgDimensions.height}`)
 
@@ -539,7 +555,7 @@ var modifiedHandler = function (evt) {
 
 var scaledHandler = function (evt) {
   var modifiedObject = evt.target;
-  if (!modifiedObject) { return }  // Unlikely, but CYA 🤯
+  if (!modifiedObject) { return }  // Unlikely CYA 🤯
   // find selected object, update zoom
   const index = findCropZone(modifiedObject.ownMatrixCache.key)
   if (index < 0) {
@@ -553,16 +569,16 @@ var scaledHandler = function (evt) {
   const scaleImg = imgDimensions.width / imgDimensions.height
   const scaleKB = kbCanvasDimensions.width / kbCanvasDimensions.height
   // ATM assume the scale is mainatined
-  const newZoom = modifiedObject.getScaledWidth() / imgDimensions.height
+  const newZoom = modifiedObject.getScaledWidth() / imgDimensions.width
   const oldZoom = zoom[index]
-  zoom[index] = newZoom
+  zoom[index] = Number.parseFloat(newZoom).toPrecision(3)
+  crops[index] = rectCrop(zoom[index], centerPoints[index])
+
   doImageMapping(exampleImageUrl)
-  dispalyWaypoints()
+  dispalyWaypointControls()
   console.groupEnd()
-  // TODO: Handle X or Y scaling that !== kbCanvasDimensions
   console.log(`zoom n${newZoom} o${oldZoom} scales mod: ${scale} img: ${scaleImg} kb: ${scaleKB}`)
 }
-
 
 var mouseDown = function (evt) {
   var movingObject = evt.target;
@@ -631,10 +647,6 @@ _canvas.on({
 //#endregion
 
 //#region WebM helper methods
-function recordingLength() {
-  return Number.parseFloat(simpleArraySum(durations)) + Number.parseFloat(simpleArraySum(delays))
-}
-
 function startRecording() {
   const recordDuration = recordingLength();
 

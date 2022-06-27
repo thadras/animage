@@ -14,42 +14,43 @@
   <meta name="application-name" content="PWA Workshop" />
   <meta name="apple-mobile-web-app-title" content="PWA Workshop" />
   <meta name="msapplication-starturl" content="index.html" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, shrink-to-fit=no"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes" />
   <link rel="stylesheet" href="index.css">
   <!-- GIF.js code -->
   <script src="gif.js"></script>
   <script src="gif.worker.js"></script>
 </head>
 
-<body style="background: lightgray">
+<body style="background: lightgray" class="body">
   <div id="viewport" class="wrapper">
-    <header id="header" class="items"></header>
+    <header id="header" class="items column">
+      <div id="controls" class="items spacer"></div>
+    </header>
     <nav class="items">
-      <div id="waypoints" class="column"></div>
+      <div id="waypoints" class="navbar"></div>
     </nav>
-    <div class="column items" id="target">
-      <div class="fabric-canvas" >
-        <canvas id="fabric-canvas"></canvas>
+    <div class="column">
+      <div class="items">
+        <div class="fabric-canvas" id="target">
+          <canvas id="fabric-canvas"></canvas>
+        </div>
+        <aside class="items column" style="padding-left: 16px">
+          <div class="column" id="side"></div>
+          <div class="column" id="sideGif"></div>
+          <div class="column" id="sideWebM"></div>
+          <div class="column" id="info"></div>
+        </aside>
       </div>
     </div>
-    <aside class="items column">
-      <div class="column" id="side"></div>
-      <div class="column" id="sideGif"></div>
-      <div class="column" id="sideWebM"></div>
-      <div class="column" id="info"></div>
-    </aside>
-    <footer id="controls" class="items spacer"></footer>
+
   </div>
   <script>
     // TODO: WIP for PWA usage in offline mode, seems to require HTTPS
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/animage/service-worker.js', {scope: '/animage/'})
-        .catch(function(err) {
+      navigator.serviceWorker.register('/animage/service-worker.js', { scope: '/animage/' })
+        .catch(function (err) {
           console.info('Service workers are not supported. ❌');
-      });
+        });
       console.log('added service worker 😍')
     } else {
       console.log('No service worker 😭')
@@ -57,4 +58,5 @@
   </script>
   <script src="bundle.js"></script>
 </body>
+
 </html>

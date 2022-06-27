@@ -1,3 +1,19 @@
+.body {
+    width: 98;
+    height: 98vh !important;
+    overflow: auto;
+}
+
+.navbar {
+    height: 82vh;
+    overflow-y: auto;
+    flex-direction: column;
+    padding-left: 25px;
+}
+.navbar::-webkit-scrollbar {
+    display: none;
+  }
+
 h2 {
     font-size: 1.5em;
     margin-block-start: 0.83em;
@@ -6,7 +22,6 @@ h2 {
     margin-inline-end: 0px;
     font-weight: bold;
     align-items: center;
-    padding: 16px;
 }
 
 input[class="text-input"] {
@@ -29,6 +44,7 @@ input[class="text-input"] {
 header {
     grid-column-start: 1;
     grid-column-end: 4;
+    margin-top: -20px;
 }
 
 footer {
@@ -39,8 +55,8 @@ footer {
 
 .wrapper * {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: start;
+    align-items: start;
     margin-bottom: 1px;
     margin-right: 1px;
 }
@@ -51,6 +67,27 @@ footer {
 
 .items {
     display: flex;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.slidecontainer {
+    align-self: normal;
+}
+
+.wp-header {
+    width: max-content;
+    align-self: center;
+    align-items: baseline;
+    flex-direction: column;
+}
+
+.is-selected{
+    align-self: center;
+}
+label {
+    padding-top: 12px;
+    padding-right: 6px;
 }
 
 button, a {

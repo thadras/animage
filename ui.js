@@ -90,11 +90,7 @@ const doFileRead = (reader, loaded) => {
   );
   let imgDeminsionsX = vw;
   let imgDeminsionsY = vh;
-  const imgCanvas = document.getElementById(
-    'fabric-canvas'
-  );
-  const ctx = imgCanvas.getContext('2d');
-  var scale = 1;
+  let scale = 1;
   image.addEventListener('load', () => {
     console.log(
       'loaded the image with w: %d by h: %d, view w: %d h: %d',
@@ -103,21 +99,8 @@ const doFileRead = (reader, loaded) => {
     if (vw < image.width && vh < image.height) {
       scale = Math.max(vw / image.width, vh / image.height);
       console.log('scale factor of  %s for viewport %s %s', scale, vw, vh);
-      imgDeminsionsX = Math.floor(
-        image.width * scale
-      );
-      imgDeminsionsY = Math.floor(
-        image.height * scale
-      );
-    } else {
-      imgDeminsionsX = image.width;
-      imgDeminsionsY = image.height;
     }
-    imgCanvas.width = imgDeminsionsX
-    imgCanvas.height = imgDeminsionsY
-    ctx.scale(scale, scale);
-    ctx.drawImage(image, 0, 0);
-    loaded(image.src)
+    loaded(image.src, scale)
   });
 }
 
