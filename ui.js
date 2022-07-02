@@ -1,8 +1,9 @@
 let renderUi = {
 
-  button: function (text, handler) {
+  button: function (text, handler, id) {
     const button = document.createElement("button");
-    button.addEventListener('click', handler);
+    button.id = id
+    button.addEventListener('click', (ev) => handler(ev, id));
     button.innerText = text;
     return button;
   },
@@ -18,7 +19,7 @@ let renderUi = {
     input.type = 'file';
     input.accept = "image/*";
     input.addEventListener('change', handler)
-    input.style.display = "none" 
+    input.style.display = "none"
     button.addEventListener('click', () => input.click());
     button.innerText = "Select File"
     div.appendChild(input)
@@ -26,7 +27,7 @@ let renderUi = {
     return div;
   },
 
-  input:function(inputLabel, value, key, callback){
+  input: function (inputLabel, value, key, callback) {
     const inputKey = `${inputLabel}_${key}`
     const div = document.createElement("div")
     const label = document.createElement("label")
@@ -35,13 +36,13 @@ let renderUi = {
     label.for = input.id = inputKey
     input.value = value
     input.className = 'text-input'
-    input.addEventListener('change', (val ) => callback(val, inputKey), false)
+    input.addEventListener('change', (val) => callback(val, inputKey), false)
     div.appendChild(label)
     div.appendChild(input)
     return div
   },
 
-  slider:function(inputLabel, value, key, callback){
+  slider: function (inputLabel, value, key, callback) {
     const inputKey = `${inputLabel}_${key}`
     const div = document.createElement("div")
     div.className = "slidecontainer"
@@ -49,20 +50,20 @@ let renderUi = {
     const input = document.createElement("input")
     label.innerText = inputLabel
     label.for = input.id = inputKey
-    input.value = value*100
+    input.value = value * 100
     input.type = "range"
     input.className = "slider"
     input.step = 1
     input.min = 1
     input.max = 100
-    input.addEventListener('change', (val ) => callback(val, inputKey), false)
+    input.addEventListener('change', (val) => callback(val, inputKey), false)
     div.appendChild(label)
     div.appendChild(input)
     return div
-   
+
   },
 
-  select: function (inputLabel, key, value, options, callback){
+  select: function (inputLabel, key, value, options, callback) {
     const inputKey = `${inputLabel}_${key}`
     const div = document.createElement("div")
     div.className = "selectContainer"

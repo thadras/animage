@@ -37,6 +37,22 @@ function recordingLength() {
   return Number.parseFloat(simpleArraySum(durations)) + Number.parseFloat(simpleArraySum(delays))
 }
 
+function setPlayButton(play) {
+  // Update Loop button to handle ⏯ toggling
+  const continueBtn = document.getElementById('continue')
+  continueBtn.innerText = play ? '▶ Loop' : '⏸ Loop'
+}
+
+const clearRecData = (_ev, id) => {
+  let found = document.getElementById(id)
+  controls.removeChild(found)
+  found = document.getElementById(id)
+  if (id[0] == 'g')
+    gifContainer.removeChild(found)
+  else if (id[0] == 'w')
+    vidContainer.removeChild(found)
+}
+
 const randomHundreth = () => Math.floor(10 + Math.random() * 90) / 100
 
 var drawRectCrop = (zoom, center, color) => {
@@ -56,14 +72,14 @@ var drawRectCrop = (zoom, center, color) => {
   const h = rect[3]
   // Out-of-bounds corrections
   if (x < 0) {
-    x=0
+    x = 0
   }
   else if (x + w > imgDimensions.width) {
     x = imgDimensions.width - w
   }
 
   if (y < 0) {
-    y=0
+    y = 0
   }
   else if (y + h > imgDimensions.height) {
     y = imgDimensions.height - h
@@ -74,20 +90,20 @@ var drawRectCrop = (zoom, center, color) => {
   var cz = new fabric.Rect({
     originX: 'left',
     originY: 'top',
-    left : x,
-    top : y,
-    width : w,
-    height : h,
+    left: x,
+    top: y,
+    width: w,
+    height: h,
     stroke: color,
     strokeWidth: '5',
-    fill : 'transparent',
+    fill: 'transparent',
     cornerColor: color,
     // allows resizing that maintains scale
     lockUniScaling: true,
     lockRotation: true,
   });
   // Disable vert/horz/rotation controls
-  cz.setControlsVisibility({ml: false, mr: false, mt: false, mb: false, mtr: false})
+  cz.setControlsVisibility({ ml: false, mr: false, mt: false, mb: false, mtr: false })
   cropZones.push(cz)
   _canvas.add(cz)
   _canvas.renderAll()
@@ -97,7 +113,7 @@ var drawRectCrop = (zoom, center, color) => {
 const fillEasingList = () => {
   if (!easingSelectValues.length) return
   easings.splice(0, easings.length)
-  easingSelectValues.forEach((val) =>{
+  easingSelectValues.forEach((val) => {
     const params = []
     val.split(',').forEach((p) => params.push(Number.parseFloat(p)))
     easings.push(bezierEasing(params[0], params[1], params[2], params[3]))
@@ -112,22 +128,39 @@ function displayArray(data) {
   console.log(msg);
 }
 
-// Clear all Ken Burn waypoints and redraw image
-function clearKBData() {
-  centerPoints.splice(0, centerPoints.length);
-  zoom.splice(0, zoom.length);
-  durations.splice(0, durations.length);
-  delays.splice(0, delays.length);
-  crops.splice(0, crops.length);
-  easings.splice(0, easings.length);
-  easingSelectValues.splice(0, easingSelectValues.length);
-  resetCropZones();
+// Clear single or all Ken Burn waypoints and redraw image
+function clearKBData(_ev, _btnId, wpID = null) {
+  if (wpID) {
+    const removeWP = wpID.split('-')[1]
+    console.log(removeWP, 1)
+    centerPoints.splice(removeWP, 1);
+    zoom.splice(removeWP, 1);
+    durations.splice(removeWP, 1);
+    delays.splice(removeWP, 1);
+    crops.splice(removeWP, 1);
+    easings.splice(removeWP, 1);
+    easingSelectValues.splice(removeWP, 1);
+    if (!centerPoints.lenth) {
+      // Empty recording length text
+      waypoints.innerHTML = "Legnth: 0.000s"
+    }
+  } else {
+    centerPoints.splice(0, centerPoints.length);
+    zoom.splice(0, zoom.length);
+    durations.splice(0, durations.length);
+    delays.splice(0, delays.length);
+    crops.splice(0, crops.length);
+    easings.splice(0, easings.length);
+    easingSelectValues.splice(0, easingSelectValues.length);
+    resetCropZones();
+    waypoints.innerHTML = ""
+  }
   continueLoop = false;
+  setPlayButton(true)
   canvas.remove()
   dumpKBData();
-  console.log('Rendering the image without waypoints')
+  console.log(`Rendering the image without ${wpID ? wpID : "waypoints"}`)
   imgContext.drawImage(image, 0, 0);
-  waypoints.innerHTML = ""
   // Restore the image display in-case it was hidden
   imageToggle(null)
 }
@@ -142,16 +175,16 @@ function resetCropZones() {
 function findCropZone(key) {
   let found = -1
   cropZones.forEach((obj, i) => {
-      if (key == obj.ownMatrixCache.key) {
-        found = i;
-      }
+    if (key == obj.ownMatrixCache.key) {
+      found = i;
+    }
   })
   return found;
 }
 
 // Dump some Ken Burns data about the waypoints
 function dumpKBData() {
-  console.groupCollapsed(`scaled ${imgScale} ${zoom.length} centerPoints, zoom, durations, delay, bezier values, sum ${recordingLength()}`)
+  console.groupCollapsed(`Play ${continueLoop}; scaled ${imgScale}; duration ${recordingLength()}\n${zoom.length} centerPoints, zoom, durations, delay, bezier values`)
   if (zoom.length) {
     displayArray(centerPoints);
     displayArray(zoom);
@@ -165,7 +198,7 @@ function dumpKBData() {
     console.log('No waypoints')
   }
   console.groupEnd()
-  console.log({bezierOptions})
+  console.log({ bezierOptions })
   console.log('👆FYI https://cubic-bezier.com/')
   console.groupEnd();
   dispalyWaypointControls();
@@ -209,15 +242,15 @@ const color = ['red', 'orange', 'green', 'blue', 'cyan', 'black']
 // Labels for UI Sliders & Inputs contols
 const labels = ['Cx', 'Cy', 'Zoom', 'Duration', 'Delay', 'CxP', 'Cy-P', 'Zoom-P', 'Duration-MS', 'Delay-MS', "Bezier"]
 const bezierOptions = [
-    { "name": "ease", "value": "0.25,.1,0.25,1" },
-    { "name": "linear", "value": "0,0,1,1" },
-    { "name": "ease-in", "value": ".42,0,1,1" },
-    { "name": "ease-in-2", "value": "0.6, 0, 1, 1" },
-    { "name": "ease-in-3", "value": "0.5, 0, 1, 1" },
-    { "name": "ease-out", "value": "0,0,0.58,1" },
-    { "name": "ease-out-2", "value": "0, 0, 0.6, 1" },
-    { "name": "ease-in-out", "value": "0.42,0,0.58,1" },
-    { "name": "ease-in-out-2", "value": "0.8, 0, 0.2, 1" }
+  { "name": "ease", "value": "0.25,.1,0.25,1" },
+  { "name": "linear", "value": "0,0,1,1" },
+  { "name": "ease-in", "value": ".42,0,1,1" },
+  { "name": "ease-in-2", "value": "0.6, 0, 1, 1" },
+  { "name": "ease-in-3", "value": "0.5, 0, 1, 1" },
+  { "name": "ease-out", "value": "0,0,0.58,1" },
+  { "name": "ease-out-2", "value": "0, 0, 0.6, 1" },
+  { "name": "ease-in-out", "value": "0.42,0,0.58,1" },
+  { "name": "ease-in-out-2", "value": "0.8, 0, 0.2, 1" }
 ]
 // KB Center Point & Zoom levels for animation freeze-frame 
 const centerPoints = [
@@ -302,17 +335,24 @@ function doImageMapping(imageUrl) {
   if (canvas) {
     side.innerHTML = ""
   }
-  canvas = createKBCanvas()
-
-  fillEasingList()
-  const ctx = canvas.getContext("2d");
   const dimInputs = imageDimensionsInputs()
-  side.appendChild(canvas);
-  side.appendChild(dimInputs)
-  var kenBurnsCanvas2d = new KenBurnsCanvas2D(ctx);
-  loadCrossOriginImage(imageUrl, true)
-    .then(exampleAnimation(kenBurnsCanvas2d))
-    .catch(e => console.error("Canvas2D implementation failure:", e));
+  if (!continueLoop) {
+    side.appendChild(title('Press ▶ Loop to start animation'))
+    side.appendChild(dimInputs)
+  }
+
+  if (continueLoop && centerPoints.length) {
+    console.log(`start loop with wp.l ${centerPoints.length}`)
+    canvas = createKBCanvas()
+    fillEasingList()
+    const ctx = canvas.getContext("2d");
+    side.appendChild(canvas);
+    side.appendChild(dimInputs)
+    var kenBurnsCanvas2d = new KenBurnsCanvas2D(ctx);
+    loadCrossOriginImage(imageUrl, true)
+      .then(exampleAnimation(kenBurnsCanvas2d))
+      .catch(e => console.error("Canvas2D implementation failure:", e));
+  }
 
   // Load full image with on-click handler
   loadCrossOriginImage(imageUrl).then(img => {
@@ -323,10 +363,10 @@ function doImageMapping(imageUrl) {
     _canvas.setWidth(f_img.getScaledWidth())
     _canvas.setHeight(f_img.getScaledHeight())
     _canvas.setBackgroundImage(f_img);
-    if (imgScale != 1 ) {
+    if (imgScale != 1) {
       console.log(`Drawing scaled image width: ${_canvas.width}, and height: ${_canvas.height}`);
     }
-    imgDimensions.width = imgCanvas.width =  f_img.getScaledWidth();
+    imgDimensions.width = imgCanvas.width = f_img.getScaledWidth();
     imgDimensions.height = imgCanvas.height = f_img.getScaledHeight();
     imgCanvas.addEventListener('click', canvasClick, false);
 
@@ -352,7 +392,6 @@ const canvasClick = (ev) => {
   // Delay to freeze-frame
   delays.push((randomHundreth() * 1000).toFixed(2))
   crops.push(rectCrop(zoom[wayPoints], centerPoints[wayPoints]));
-  continueLoop = true;
   modifiedWP = centerPoints.length - 1
   dumpKBData();
   doImageMapping(exampleImageUrl);
@@ -385,13 +424,36 @@ doImageMapping(exampleImageUrl)
 
 controls.appendChild(buttonRow);
 buttonRow.appendChild(renderUi.selectFile(newImage))
-buttonRow.appendChild(renderUi.button('Clear Waypoints', clearKBData))
-buttonRow.appendChild(renderUi.button('Toggle Image', imageToggle))
-buttonRow.appendChild(renderUi.button('Console Dump', dumpKBData))
-buttonRow.appendChild(renderUi.button('Restart Loop', () => doImageMapping(exampleImageUrl)))
-buttonRow.appendChild(renderUi.button('WebM Recording', startRecording))
-buttonRow.appendChild(renderUi.button('GIF Recording', startGif))
+buttonRow.appendChild(renderUi.button('Clear Waypoints', clearKBData, 'flush'))
+buttonRow.appendChild(renderUi.button('Toggle Image', imageToggle, 'bye'))
+buttonRow.appendChild(renderUi.button('Console Log', dumpKBData, 'dump'))
+buttonRow.appendChild(renderUi.button('⏸ Loop', loopControl, 'continue'))
+buttonRow.appendChild(renderUi.button('WebM Recording', startRecording, 'WebM'))
+buttonRow.appendChild(renderUi.button('GIF Recording', startGif, 'GIF'))
 dispalyWaypointControls()
+
+function loopControl() {
+  if (!centerPoints.length) return; // Nothing to display
+  continueLoop = !continueLoop
+  if (centerPoints.length)
+    doImageMapping(exampleImageUrl)
+  // Inverted logic to have play (true) show pause and vice versa
+  setPlayButton(!continueLoop)
+}
+
+function clearWPData(ev, id) {
+  console.log(ev)
+  console.log(id)
+  const found = document.getElementById(id)
+  console.log(waypoints)
+  console.log(found)
+  waypoints.removeChild(found)
+  if (continueLoop) {
+    loopControl()  // Stop loop before removing KB Data items
+  }
+  clearKBData(null, null, id)
+  loopControl()  // Restart loop w
+}
 
 // Update nav bar to include the Ken Burns waypoint UI controls
 function dispalyWaypointControls() {
@@ -401,6 +463,8 @@ function dispalyWaypointControls() {
     const divHeader = document.createElement("div")
     divHeader.className = modifiedWP == i ? "is-selected" : ""
     const p1 = document.createElement("p");
+    const removeWPDButton = renderUi.button('❌', clearWPData, `waypoint-${i}`)
+    removeWPDButton.setAttribute('style', "padding: 0 !important; margin: 2px;")
     p1.className = "items"
     p1.innerText = `Waypoint ${i}`
     p1.style.color = color[i % color.length]
@@ -408,12 +472,14 @@ function dispalyWaypointControls() {
     const qvButton = document.createElement("button")
     qvButton.setAttribute('data-quick-view', "")
     qvButton.setAttribute('aria-expanded', modifiedWP == i)
-    qvButton.innerText =  modifiedWP != i  ? '🔽' : '🔼'
+    qvButton.innerText = modifiedWP != i ? '🔽' : '🔼'
+
     divHeader.appendChild(p1)
     divHeader.appendChild(qvButton)
+    divHeader.appendChild(removeWPDButton)
 
     const divControls = document.createElement("div")
-    divControls.className = `column ${modifiedWP == i ? "": "is-hidden"} quickview-${i}`
+    divControls.className = `column ${modifiedWP == i ? "" : "is-hidden"} quickview-${i}`
     // TODO: Conditional Checkbox
     let textInputs = true;
     waypoints.appendChild(divHeader)
@@ -426,9 +492,9 @@ function dispalyWaypointControls() {
 
     if (textInputs) {
       // TEXT
-      var tuiCxInput = renderUi.input(labels[5], centerPoints[i][0]*100, i, inputChanged);
-      var tuiCyInput = renderUi.input(labels[6], centerPoints[i][1]*100, i, inputChanged);
-      var tuiZInput = renderUi.input(labels[7], zoom[i]*100, i, inputChanged);
+      var tuiCxInput = renderUi.input(labels[5], centerPoints[i][0] * 100, i, inputChanged);
+      var tuiCyInput = renderUi.input(labels[6], centerPoints[i][1] * 100, i, inputChanged);
+      var tuiZInput = renderUi.input(labels[7], zoom[i] * 100, i, inputChanged);
       var tuiSDurInput = renderUi.input(labels[8], durations[i], i, inputChanged);
       var tuiSDelInput = renderUi.input(labels[9], delays[i], i, inputChanged);
     }
@@ -448,6 +514,7 @@ function dispalyWaypointControls() {
 
     const div = document.createElement("div")
     div.className = "wp-header"
+    div.id = `waypoint-${i}`
     div.appendChild(divHeader)
     div.appendChild(divControls)
     waypoints.appendChild(div)
@@ -472,7 +539,7 @@ function imageDimensionsInputs() {
   const div = document.createElement("div")
   const uiKBWInput = renderUi.input('Width', kbCanvasDimensions.width, 'width', inputKBChanged);
   const uiKBHInput = renderUi.input('Height', kbCanvasDimensions.height, 'height', inputKBChanged);
-  div.style.paddingBottom  = '16px'
+  div.style.paddingBottom = '16px'
   div.appendChild(uiKBWInput)
   div.appendChild(uiKBHInput)
   divKB.appendChild(div)
@@ -502,7 +569,7 @@ function inputChanged(ev, key) {
       break;
     case labels[1]:
     case labels[6]:
-      centerPoints[idx][1] =Number.parseFloat(emitter.value / 100).toPrecision(3)
+      centerPoints[idx][1] = Number.parseFloat(emitter.value / 100).toPrecision(3)
       break;
     case labels[2]:
     case labels[7]:
@@ -549,13 +616,13 @@ function bezierChanged(ev, key) {
 //#endregion
 
 //#region Fabric helper methods
-var _canvas =  new fabric.Canvas('fabric-canvas', {
+var _canvas = new fabric.Canvas('fabric-canvas', {
   containerClass: 'fabric-canvas',
   enableRetinaScaling: false,
   interactive: true,
-  selection : true,
-  controlsAboveOverlay:true,
-  centeredScaling:true,
+  selection: false,
+  controlsAboveOverlay: true,
+  centeredScaling: true,
   allowTouchScrolling: true,
 });
 
@@ -563,8 +630,8 @@ var _canvas =  new fabric.Canvas('fabric-canvas', {
 var modifiedHandler = function (evt) {
   var modifiedObject = evt.target;
   if (!modifiedObject) { return }  // Unlikely CYA 🤯
-  if ( Math.abs(modifiedObject.getScaledWidth() - modifiedObject.width) > 1
-      || Math.abs(modifiedObject.getScaledHeight() - modifiedObject.height)  > 1 ) {
+  if (Math.abs(modifiedObject.getScaledWidth() - modifiedObject.width) > 1
+    || Math.abs(modifiedObject.getScaledHeight() - modifiedObject.height) > 1) {
     console.log('skip recentering on a scaled event')
     return
   }
@@ -574,20 +641,20 @@ var modifiedHandler = function (evt) {
     console.error(`Could not locate modified object ${modifiedObject.ownMatrixCache.key}`)
     return
   }
-  console.groupCollapsed(`modified L${modifiedObject.get('left')}, T${ modifiedObject.get('top')}, key: ${modifiedObject.ownMatrixCache.key}`);
+  console.groupCollapsed(`modified L${modifiedObject.get('left')}, T${modifiedObject.get('top')}, key: ${modifiedObject.ownMatrixCache.key}`);
   console.log(modifiedObject)
   // Intersection of diaganol
   const xCenter = modifiedObject.left + modifiedObject.width / 2
   const yCenter = modifiedObject.top + modifiedObject.height / 2
   const oldY = centerPoints[index][1]
   const oldX = centerPoints[index][0]
-  centerPoints[index][0] = Number.parseFloat(xCenter/imgDimensions.width).toPrecision(3);
-  centerPoints[index][1] = Number.parseFloat(yCenter/imgDimensions.height).toPrecision(3);
+  centerPoints[index][0] = Number.parseFloat(xCenter / imgDimensions.width).toPrecision(3);
+  centerPoints[index][1] = Number.parseFloat(yCenter / imgDimensions.height).toPrecision(3);
 
   doImageMapping(exampleImageUrl)
   dispalyWaypointControls()
   console.groupEnd()
-  console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter/imgDimensions.width}, ${yCenter/imgDimensions.height}`)
+  console.log(`centerpoint from ${oldX}, ${oldY} -> ${xCenter / imgDimensions.width}, ${yCenter / imgDimensions.height}`)
 
 };
 
@@ -600,7 +667,7 @@ var scaledHandler = function (evt) {
     console.error(`Could not locate modified object ${modifiedObject.ownMatrixCache.key}`)
     return
   }
-  console.groupCollapsed(`scaled w${modifiedObject.getScaledWidth()}, h${ modifiedObject.getScaledHeight()}, key: ${modifiedObject.ownMatrixCache.key}`);
+  console.groupCollapsed(`scaled w${modifiedObject.getScaledWidth()}, h${modifiedObject.getScaledHeight()}, key: ${modifiedObject.ownMatrixCache.key}`);
   console.log(modifiedObject)
   // Zoom scale calculation and manage out-of-scale changes
   const scale = modifiedObject.getScaledWidth() / modifiedObject.getScaledHeight()
@@ -623,7 +690,7 @@ var mouseDown = function (evt) {
   if (!movingObject) {
     console.groupCollapsed(`clicked outside any crop at ${evt.e.offsetX}, ${evt.e.offsetY}`);
     console.log(evt)
-    if (evt.e instanceof MouseEvent){
+    if (evt.e instanceof MouseEvent) {
       canvasClick(evt.e)
     }
     else if (evt.e instanceof TouchEvent) {
@@ -673,8 +740,8 @@ function touchLP(ev) {
 }
 
 _canvas.on({
-  'object:modified' : modifiedHandler,
-  'object:scaled' : scaledHandler,
+  'object:modified': modifiedHandler,
+  'object:scaled': scaledHandler,
   'mouse:down': mouseDown,
   'touch:longpress': touchLP,
   'touch:gesture': touchG,
@@ -685,13 +752,22 @@ _canvas.on({
 //#endregion
 
 //#region WebM helper methods
-function startRecording() {
+function startRecording(ev) {
   const recordDuration = recordingLength();
 
   if (!recordDuration) {
     console.log('noting to record')
     return
   }
+  continueLoop = true;
+  setPlayButton(false)
+  // Recording button effect
+  const button = ev.target
+  button.style.backgroundColor = 'red'
+  button.className = 'blink'
+  button.innerText = ''
+  button.disabled = true
+
   doImageMapping(exampleImageUrl)
   anim()
   const chunks = []; // here we will store our recorded media chunks (Blobs)
@@ -710,18 +786,31 @@ function startRecording() {
 function exportVid(blob) {
   const vidDiv = document.createElement('div');
   const vid = document.createElement('video');
+  const id = `webm-${Math.floor(Math.random() * 1000)}`
+  const a = document.createElement('a');
   vid.src = URL.createObjectURL(blob);
   vid.controls = true;
   vidDiv.className = "column"
-  vidDiv.appendChild(title("WebM"))
+  vidDiv.id = a.id = id
+  // Allow for removing current recording
+  const webMHeader = title("WebM")
+  const removeWebMButton = renderUi.button('❌', clearRecData, id)
+  removeWebMButton.setAttribute('style', "padding: 0 !important; margin: 2px;")
+  webMHeader.appendChild(removeWebMButton)
+  vidDiv.appendChild(webMHeader)
   vidDiv.appendChild(vid);
-  const a = document.createElement('a');
   a.download = 'myvid.webm';
   a.href = vid.src;
   a.textContent = '⏬ WebM 💾';
   controls.appendChild(a);
+  // Replace any existing video
   vidContainer.replaceChildren(vidDiv)
-  // vidContainer.appendChild(vidDiv);
+  // Revert to recording button style
+  const button = document.getElementById('WebM')
+  button.className = ''
+  button.innerText = 'WebM Recording'
+  button.disabled = false
+  button.style.backgroundColor = null
 }
 
 function anim() {
@@ -731,75 +820,99 @@ function anim() {
 
 //#region GIF recorder
 // Adapted from https://dev.to/melissamcewen/code-experiment-converting-canvas-animations-to-gifs-58hh
-function startGif() {
+function startGif(ev) {
   if (!recordingLength()) {
-    console.log('noting to record')
+    console.log('nothing to record')
     return
   }
 
-  let numFrames = Math.round(recordingLength()/100);
-  let canvas = document.getElementById("animCanvas");
+  let numFrames = Math.floor(recordingLength() / 100);
   let gif = new GIF({
     workers: 2,
     quality: 10,
-    loop: true,
     // TODO: Conditional Checkbox
     // transparent: true,
   });
+  console.log(gif)
   //https://codepen.io/agar3s/pen/pJpoya
-  let ctx = canvas.getContext("2d");
-  let x = 0;
-  let y = 0;
-  let rendered = false;
 
-  ctx.lineJoin = "round";
-  ctx.globalCompositeOperation = "lighter";
+  if (!continueLoop) {
+    continueLoop = true;
+    console.log('starting animation since it was stopped')
+    setPlayButton(false)
+  }
+
   console.log(`Starting GIF of ${numFrames} frames`)
   // Start loop at beginning
   doImageMapping(exampleImageUrl)
+  requestAnimationFrame(loop);
+
+  let canvas = document.getElementById("animCanvas");
+  let x = 0;
+  let rendered = false;
+  // Recording button effect
+  const gifRecordButton = ev.target
+  gifRecordButton.style.backgroundColor = 'red'
+  gifRecordButton.className = 'blink'
+  gifRecordButton.innerText = ''
+  gifRecordButton.disabled = true
 
   function loop() {
-    x += 2;
-    y += 2;
-    if (x > numFrames*2) {
-      x = -50;
-      y = -50;
+    x += 1;
+    if (x >= numFrames) {
+      x = 0;
       if (rendered === false) {
-        console.log("Rendering frame");
+        console.log("Rendering GIF");
+        // Trash first & last couple frames to be less glitchy 🤷‍♂️
+        gif.frames.shift()
+        gif.frames.pop()
+        gif.frames.pop()
         gif.render();
       } else {
         requestAnimationFrame(loop);
       }
     } else {
       if (rendered === false) {
-        console.log(`Rendering Gif of ${numFrames} frames`);
+        console.log(`Rendering Gif of ${numFrames - 2} frames`);
         gif.addFrame(canvas, {
           copy: true,
-          delay: 50
+          delay: 50,
         });
       }
       setTimeout(() => requestAnimationFrame(loop), 100)
     }
   }
 
-  requestAnimationFrame(loop);
-
-  gif.on("finished", function(blob) {
+  gif.on("finished", function (blob) {
     const div = document.createElement("div")
     const img = document.createElement("img")
+    const id = `gif-${Math.floor(Math.random() * 1000)}`
+    const a = document.createElement('a');
+    div.id = a.id = id
     div.className = "column"
     img.src = URL.createObjectURL(blob);
     console.log(`Gif rendered of ~${recordingLength()}s`);
-    div.appendChild(title("GIF"))
+    // Allow for removing recorded gif
+    const gifHeader = title("GIF")
+    const removeGifButton = renderUi.button('❌', clearRecData, id)
+    removeGifButton.setAttribute('style', "padding: 0 !important; margin: 2px;")
+    gifHeader.appendChild(removeGifButton)
+    div.appendChild(gifHeader)
     div.appendChild(img)
-    const a = document.createElement('a');
+
+    // Download link
     a.download = 'kenburns.gif';
     a.href = img.src;
     a.textContent = '⏬ Gif 💾';
     controls.appendChild(a);
+    // Replace any recorded GIF
     gifContainer.replaceChildren(div)
     rendered = true;
-    requestAnimationFrame(loop);
+    // Revert to recording button style
+    gifRecordButton.className = ''
+    gifRecordButton.innerText = 'GIF Recording'
+    gifRecordButton.disabled = false
+    gifRecordButton.style.backgroundColor = null
   });
 }
 //#endregion
