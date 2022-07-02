@@ -10,9 +10,10 @@
     flex-direction: column;
     padding-left: 25px;
 }
+
 .navbar::-webkit-scrollbar {
     display: none;
-  }
+}
 
 h2 {
     font-size: 1.5em;
@@ -21,7 +22,7 @@ h2 {
     margin-inline-start: 0px;
     margin-inline-end: 0px;
     font-weight: bold;
-    align-items: center;
+    align-self: center;
 }
 
 input[class="text-input"] {
@@ -82,19 +83,22 @@ footer {
     flex-direction: column;
 }
 
-.is-selected{
+.is-selected {
     align-self: center;
 }
+
 label {
     padding-top: 12px;
     padding-right: 6px;
 }
 
-button, a {
+button,
+a {
     margin: 2px;
     padding: 6px;
     border-radius: 12px;
     border: 1px solid;
+    align-self: center;
 }
 
 /*chrome and opera*/
@@ -150,4 +154,23 @@ select {
 
 .is-hidden {
     display: none;
+}
+
+/* Blinker */
+.blink {
+    animation: blink-animation 1s steps(5, start) infinite;
+    -webkit-animation: blink-animation 1s steps(5, start) infinite;
+    align-self: center;
+}
+
+@keyframes blink-animation {
+    to {
+        visibility: hidden;
+    }
+}
+
+@-webkit-keyframes blink-animation {
+    to {
+        visibility: hidden;
+    }
 }
